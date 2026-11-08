@@ -14,7 +14,7 @@ Views.journal = {
       const xp = Object.entries(arc.reward.xp).map(([d, v]) => `<span class="badge dom-${d}">${GAME.domains[d].icon} +${v}</span>`).join(' ');
       return `<article class="card arc ${mode} ${npc.domain ? 'dom-' + npc.domain : ''}">
         <div class="arc-head">
-          <div class="npc-portrait sm">${npc.icon}</div>
+          <div class="npc-portrait sm">${UI.npcFace(arc.npc, 46)}</div>
           <div class="arc-meta"><h3>${U.esc(arc.title)}</h3><div class="muted small">${U.esc(npc.name)} · ${U.esc(npc.role)}</div></div>
           <span class="pill ${mode === 'done' ? 'ok' : ''}">${mode === 'done' ? 'Terminée' : `${p.count}/${p.steps.length}`}</span>
         </div>
@@ -58,7 +58,7 @@ Views.journal = {
       <section class="card">
         <div class="card-head"><h2>Personnages rencontrés</h2><span class="muted small">${met.size} / ${Object.keys(NPCS).length}</span></div>
         <div class="npc-roster">${Object.entries(NPCS).map(([id, n]) => met.has(id)
-          ? `<div class="roster-item ${n.domain ? 'dom-' + n.domain : ''}"><div class="npc-portrait sm">${n.icon}</div><div><strong>${U.esc(n.name)}</strong><small class="muted">${U.esc(n.role)}</small></div></div>`
+          ? `<div class="roster-item ${n.domain ? 'dom-' + n.domain : ''}"><div class="npc-portrait sm">${UI.npcFace(id, 46)}</div><div><strong>${U.esc(n.name)}</strong><small class="muted">${U.esc(n.role)}</small></div></div>`
           : '<div class="roster-item unknown"><div class="npc-portrait sm">?</div><div><strong>???</strong><small class="muted">Pas encore rencontré</small></div></div>').join('')}</div>
       </section>
 

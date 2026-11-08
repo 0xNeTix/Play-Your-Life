@@ -205,6 +205,7 @@ const Engine = (() => {
       const newNpc = ARCS.filter(a => a.minChar > from && a.minChar <= to).map(a => NPCS[a.npc].name);
       if (newNpc.length) out.push({ kind: 'feature', text: `De nouveaux PNJ peuvent te croiser : ${[...new Set(newNpc)].join(', ')}` });
     }
+    for (const t of Avatar.unlocksBetween(d, from, to)) out.push({ kind: 'cosmetic', text: `Avatar — ${t}` });
     for (const r of s.rewards) if (r.domain === d && r.level > from && r.level <= to) out.push({ kind: 'reward', text: r.text });
     return out;
   }
@@ -290,6 +291,7 @@ const Engine = (() => {
       xp7: s.xpLog.filter(e => e.ts >= wk).reduce((a, e) => a + e.amount, 0),
       domains: lv, streak: streak(s), weekStreak: weekStreak(s), runKm: Math.round(runStats(s).km), records,
       npcTitles: s.npc.titles.map(t => t.title),
+      avatar: s.profile?.avatar || null,
     };
   }
 

@@ -20,8 +20,19 @@ const App = {
     if (this.state.profile) this.afterProfileLoad();
   },
 
+  /* Photo de profil (stockée avec les photos, chargée une fois par profil) */
+  async loadPP() {
+    const id = this.state.id;
+    const url = id && this.state.profile?.hasPhoto ? await Store.getPhoto('pp-' + id) : null;
+    if (this.state.id !== id) return;
+    this.ppUrl = url;
+    this.renderShell();
+    if (['settings', 'guild'].includes(this.route)) this.render(false);
+  },
+
   /* Récompenses de PNJ en attente, puis éventuelle rencontre */
   afterProfileLoad() {
+    this.loadPP();
     for (const arc of ARCS) if (this.state.npc.arcs[arc.id]?.status === 'ready') this.modalQueue.push(() => this.showNpc(arc, 'complete'));
     this.checkArcs();
     setTimeout(() => { this.flushModals(); this.maybeEncounter('open'); }, 1200);
@@ -46,6 +57,7 @@ const App = {
     const s = await Store.loadProfile(id);
     if (!s) return;
     this.state = s;
+    this.ppUrl = null;
     this.modalQueue = [];
     this.applyTheme();
     this.toast(`Profil actif : <b>${U.esc(s.profile.name)}</b>`);
@@ -56,6 +68,7 @@ const App = {
     await this.save(true);
     this._profilesCache = await Store.listProfiles();
     this.modalQueue = [];
+    this.ppUrl = null;
     this.state = Store.fresh();
     this.go('#/onboarding');
   },
@@ -117,7 +130,7 @@ const App = {
     const isChar = lu.domain === 'char';
     const d = isChar ? { name: 'Personnage', icon: '⭐' } : GAME.domains[lu.domain];
     const unlocks = Engine.unlocksBetween(this.state, lu.domain, lu.from, lu.to);
-    const icons = { title: '🏷️', mission: '🎯', reward: '🎁', feature: '🔓' };
+    const icons = { title: '🏷️', mission: '🎯', reward: '🎁', feature: '🔓', cosmetic: '👕' };
     const nextNeed = Engine.need(lu.to, isChar ? GAME.levelBase.char : GAME.levelBase.domain);
     this.modal(`
       <div class="levelup ${isChar ? 'char' : 'dom-' + lu.domain}">
@@ -156,7 +169,7 @@ const App = {
   /* ---------- PNJ ---------- */
   maybeEncounter(trigger, force = false) {
     const s = this.state;
-    if (!s.profile || this.isModalOpen() || this.modalQueue.length || this.route === 'quiz') return;
+    if (!s.profile || this.isModalOpen() || this.modalQueue.length || ['quiz', 'avatar', 'onboarding'].includes(this.route)) return;
     const today = U.dayKey();
     const n = s.npc.encounters[today] || 0;
     const avail = Engine.availableArcs(s);
@@ -185,7 +198,7 @@ const App = {
     this.modal(`
       <div class="npc-dialog ${dom}">
         <div class="npc-top">
-          <div class="npc-portrait">${npc.icon}</div>
+          <div class="npc-portrait">${Avatar.svg(npc.look, { size: 104, label: npc.name })}</div>
           <div><div class="npc-name">${U.esc(npc.name)}</div><div class="npc-role">${U.esc(npc.role)}</div></div>
         </div>
         <p class="npc-text" id="npc-text" data-full="${U.esc(text)}"></p>
@@ -264,7 +277,7 @@ const App = {
       if (el.matches('input[type=file][data-preview]')) {
         const img = document.getElementById(el.dataset.preview);
         const f = el.files && el.files[0];
-        if (img && f) { img.src = URL.createObjectURL(f); img.closest('.photo-slot')?.classList.add('has'); }
+        if (img && f) { img.src = URL.createObjectURL(f); img.closest('.photo-slot, .pp-pick')?.classList.add('has'); }
       }
       if (el.dataset.change && this.actions[el.dataset.change]) this.actions[el.dataset.change](el, ev);
     });
@@ -310,8 +323,8 @@ const App = {
     const active = this.route === 'quiz' ? 'pro' : this.route;
     side.innerHTML = `
       <div class="brand"><span class="brand-mark">⚔️</span><span>Play Your Life</span></div>
-      <a class="hero-card" href="#/stats">
-        <div class="avatar ${aura}">${U.esc((s.profile.name || '?').trim().charAt(0).toUpperCase())}</div>
+      <a class="hero-card" href="#/avatar" title="Personnaliser mon avatar">
+        <div class="avatar ${aura}">${UI.portrait(s, 52)}</div>
         <div class="hero-meta">
           <div class="hero-name">${U.esc(s.profile.name)}</div>
           <div class="hero-title">${U.esc(Engine.title('char', cl.level))} · Niv. ${cl.level}</div>
@@ -326,6 +339,41 @@ const App = {
 
 /* ---------- Composants partagés ---------- */
 const UI = {
+  /* Photo de profil ou avatar selon le choix du joueur */
+  portrait(s, size, { forceAvatar = false } = {}) {
+    const p = s.profile || {};
+    if (!forceAvatar && p.display === 'photo' && App.ppUrl) return `<img class="pp" src="${App.ppUrl}" width="${size}" height="${size}" alt="${U.esc(p.name)}">`;
+    return Avatar.svg(p.avatar, { size, crop: size < 80 ? 'face' : null, shape: 'circle', label: p.name });
+  },
+  npcFace(npcId, size) {
+    const n = NPCS[npcId];
+    return Avatar.svg(n.look, { size, crop: 'face', label: n.name });
+  },
+  /* Carte de joueur : couleur selon le niveau du personnage */
+  cardTier(level) {
+    if (level >= 15) return { id: 'legend', name: 'Légende' };
+    if (level >= 10) return { id: 'ruby', name: 'Rubis' };
+    if (level >= 7) return { id: 'gold', name: 'Or' };
+    if (level >= 4) return { id: 'silver', name: 'Argent' };
+    return { id: 'copper', name: 'Cuivre' };
+  },
+  playerCard(card, { photoUrl = null } = {}) {
+    const tier = this.cardTier(card.level);
+    const pic = photoUrl
+      ? `<img src="${photoUrl}" alt="" width="96" height="96">`
+      : Avatar.svg(card.avatar, { size: 96, label: card.name });
+    return `<article class="pcard tier-${tier.id}">
+      <div class="pc-band">
+        <div class="pc-pic">${pic}</div>
+        <div class="pc-id"><div class="pc-name">${U.esc(card.name)}</div><div class="pc-title">${U.esc(card.title || '')}</div><div class="pc-tier">Carte ${tier.name}</div></div>
+        <div class="pc-lvl"><small>NIV</small>${card.level}</div>
+      </div>
+      <div class="pc-body">
+        ${GAME.domainOrder.map(d => `<div class="pc-dom dom-${d}"><span>${GAME.domains[d].icon} ${GAME.domains[d].name}</span><b>${card.domains?.[d] ?? 1}</b></div>`).join('')}
+      </div>
+      <div class="pc-foot"><span>🔥 ${card.streak ?? 0} j</span><span>🏋️ ${card.weekStreak ?? 0} sem.</span><span>🏃 ${card.runKm ?? 0} km</span>${card.npcTitles?.length ? `<span>📜 ${card.npcTitles.length}</span>` : ''}</div>
+    </article>`;
+  },
   xpBar(info, domain) {
     return `<div class="xpbar ${domain ? 'dom-' + domain : ''}"><span style="width:${(info.pct * 100).toFixed(1)}%"></span></div>`;
   },

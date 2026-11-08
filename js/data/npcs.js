@@ -21,16 +21,22 @@
      manual {}                       étape libre, validée avec une preuve écrite */
 const NPCS = {
   kael:     { name: 'Maître Kael', role: 'Forgeron des corps', icon: '🔨', domain: 'sport',
+    look: { face: 'square', skin: '#d39a6a', hair: 'bald', hairColor: '#a2462a', eyes: 'determined', eyeColor: '#5a3a22', brows: 'thick', mouth: 'grin', beard: 'viking', outfit: 'apron', outfitColor: '#5a4a42', bg: '#d4704c', extras: ['scar', 'sweat'] },
     greet: ['Hé, toi ! Oui, toi. Tes bras tremblent rien qu\'à me regarder.', 'Le fer se travaille à chaud. Et toi, tu chauffes quand ?'] },
   lyra:     { name: 'Lyra', role: 'Archiviste de la Grande Bibliothèque', icon: '📜', domain: 'intel',
+    look: { face: 'oval', skin: '#fde3c8', hair: 'long', hairColor: '#a2462a', eyes: 'normal', eyeColor: '#2f8a5a', brows: 'raised', mouth: 'smile', glasses: 'round', outfit: 'scholar', outfitColor: '#7b4fc9', bg: '#3b2a63', extras: ['freckles', 'blush'] },
     greet: ['Chut… Tu entends ? Ce sont des livres qui attendent d\'être lus.', 'Un esprit qui n\'apprend plus commence à rouiller. Assieds-toi.'] },
   orin:     { name: 'Orin', role: 'Ingénieur des machines', icon: '⚙️', domain: 'pro',
+    look: { face: 'chubby', skin: '#8d5a36', hair: 'curly', hairColor: '#ece0c4', eyes: 'big', brows: 'raised', mouth: 'open', beard: 'mustache', glasses: 'square', headwear: 'goggles', headwearColor: '#0bc5d2', outfit: 'varsity', outfitColor: '#003440', bg: '#16213e', pose: 'hands', extras: ['sweat'] },
     greet: ['Tes compétences tournent à vide. Laisse-moi régler ça.', 'Un bon artisan se reconnaît à ce qu\'il a construit, pas à ce qu\'il a prévu.'] },
   mira:     { name: 'Sœur Mira', role: 'Gardienne du Temple de l\'Aube', icon: '🕯️', domain: 'discipline',
+    look: { face: 'oval', skin: '#f6c9a0', hair: 'long', hairColor: '#2b2220', eyes: 'sleepy', eyeColor: '#6b7a86', brows: 'normal', mouth: 'smile', headwear: 'hood', headwearColor: '#efe3d0', outfit: 'robe', outfitColor: '#efe3d0', bg: '#b8862f', extras: ['blush'] },
     greet: ['La motivation est une flamme. La discipline, c\'est la lanterne.', 'Tu reviens ? Bien. Revenir chaque jour, c\'est déjà la moitié du chemin.'] },
   brann:    { name: 'Capitaine Brann', role: 'Éclaireur de la Garde', icon: '🛡️', domain: 'sport',
+    look: { face: 'square', skin: '#eab48a', hair: 'short', hairColor: '#4a2e1c', eyes: 'determined', eyeColor: '#2f6db5', brows: 'angry', mouth: 'neutral', beard: 'short', headwear: 'helmet', outfit: 'armor', bg: '#450c07', extras: ['scar'] },
     greet: ['Soldat ! Les routes ne se parcourent pas en les regardant sur une carte.', 'Mes éclaireurs courent avant l\'aube. Tu en es ?'] },
   voyageur: { name: 'Le Voyageur', role: 'Personne ne connaît son nom', icon: '🧭', domain: null,
+    look: { face: 'oval', skin: '#b57a4e', hair: 'short', hairColor: '#9a9a9a', eyes: 'sleepy', eyeColor: '#c08a2e', brows: 'normal', mouth: 'smirk', beard: 'stubble', headwear: 'hat', headwearColor: '#3d2a1e', outfit: 'robe', outfitColor: '#1d3b44', bg: '#003440', extras: [] },
     greet: ['…Je t\'observe depuis un moment. Tu avances, mais sur un seul pied.', 'Chaque chemin mène quelque part. Les quatre ensemble mènent à toi.'] },
 };
 

@@ -38,6 +38,7 @@ Views.guild = {
       <section class="cols">
         <div class="card">
           <div class="card-head"><h2>Partager ma carte</h2></div>
+          <div class="pcard-wrap">${UI.playerCard(Engine.publicCard(App.state))}</div>
           <p class="muted small">Exporte ta carte et envoie-la à tes amis (messagerie, mail). Ils l'importent de leur côté. Renvoie-la de temps en temps pour mettre ton classement à jour.</p>
           <button class="btn primary" data-act="exportCard">⬇️ Exporter ma carte de joueur</button>
         </div>
@@ -61,7 +62,7 @@ Views.guild = {
       <thead><tr><th>#</th><th>Joueur</th><th>Niv.</th>${GAME.domainOrder.map(d => `<th title="${GAME.domains[d].name}">${GAME.domains[d].icon}</th>`).join('')}<th>🔥</th><th>XP 7 j</th><th></th></tr></thead>
       <tbody>${cards.map((c, i) => `<tr class="${c.me ? 'me' : ''}">
         <td class="rank-cell">${medal(i)}</td>
-        <td><strong>${U.esc(c.name)}</strong><small class="muted block">${U.esc(c.title || '')}${c.friend ? ` · carte du ${U.fmtShort(c.updatedAt)}` : c.me ? ' · toi' : ' · cet appareil'}</small></td>
+        <td class="gp"><span class="g-av">${Avatar.svg(c.avatar, { size: 40, crop: 'face', shape: 'circle', label: c.name })}</span><div><strong>${U.esc(c.name)}</strong><small class="muted block">${U.esc(c.title || '')}${c.friend ? ` · carte du ${U.fmtShort(c.updatedAt)}` : c.me ? ' · toi' : ' · cet appareil'}</small></div></td>
         <td><strong>${c.level}</strong></td>
         ${GAME.domainOrder.map(d => `<td>${c.domains?.[d] ?? '—'}</td>`).join('')}
         <td>${c.streak ?? 0}</td><td>${U.fmtNum(c.xp7 ?? 0)}</td>
@@ -93,6 +94,8 @@ App.actions.importCard = async el => {
       updatedAt: Number(c.updatedAt) || Date.now(), level: Number(c.level) || 1, xp: Number(c.xp) || 0, xp7: Number(c.xp7) || 0,
       streak: Number(c.streak) || 0, weekStreak: Number(c.weekStreak) || 0, runKm: Number(c.runKm) || 0,
       domains: Object.fromEntries(GAME.domainOrder.map(d => [d, Number(c.domains?.[d]) || 1])),
+      avatar: c.avatar && typeof c.avatar === 'object' ? Avatar.sanitizeForeign(c.avatar) : null,
+      npcTitles: Array.isArray(c.npcTitles) ? c.npcTitles.slice(0, 50).map(t => String(t).slice(0, 40)) : [],
     };
     App.state.friends = (App.state.friends || []).filter(x => x.id !== clean.id);
     App.state.friends.push(clean);

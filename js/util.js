@@ -76,6 +76,23 @@ const U = {
     const h = Math.floor(ms / 3600000), m = Math.ceil((ms % 3600000) / 60000);
     return h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`;
   },
+  /* Recadre une image (File) au carré, centrée, en JPEG dataURL */
+  squareImage(file, side = 360, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onerror = () => reject(new Error('Image illisible'));
+      img.onload = () => {
+        const m = Math.min(img.width, img.height);
+        const c = document.createElement('canvas');
+        c.width = c.height = side;
+        c.getContext('2d').drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, side, side);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', quality));
+      };
+      img.src = url;
+    });
+  },
   /* Compresse une image (File) en JPEG dataURL */
   compressImage(file, maxSide = 900, quality = 0.82) {
     return new Promise((resolve, reject) => {

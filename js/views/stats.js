@@ -13,7 +13,7 @@ Views.stats = {
       <header class="page-head">
         <p class="eyebrow">📊 Fiche de personnage</p>
         <h1>${U.esc(s.profile.name)}, niveau ${cl.level}</h1>
-        <p class="muted">${U.esc(Engine.title('char', cl.level))} · ${U.fmtNum(Engine.totalXP(s))} XP au total · aventure commencée il y a ${days} jour${days > 1 ? 's' : ''}</p>
+        <p class="muted">${s.profile.height ? `${s.profile.height} cm · ${s.profile.weight} kg · ` : ''}${U.esc(Engine.title('char', cl.level))} · ${U.fmtNum(Engine.totalXP(s))} XP au total · aventure commencée il y a ${days} jour${days > 1 ? 's' : ''}</p>
       </header>
 
       <section class="cols">
@@ -95,6 +95,10 @@ Views.stats = {
     }
     const ci = s.sport.checkins.slice().sort((a, b) => a.ts - b.ts);
     if ($('ch-score')) Charts.line($('ch-score'), ci.map(c => ({ x: c.ts, y: c.total, note: c.week })), { color: 'var(--c-sport)', height: 180, label: 'Score physique', emptyMsg: 'Fais ton premier check-in' });
-    if ($('ch-weight')) Charts.line($('ch-weight'), ci.filter(c => c.weight).map(c => ({ x: c.ts, y: c.weight })), { color: 'var(--c-sport)', height: 180, label: 'Poids', fmt: v => `${v} kg`, emptyMsg: 'Renseigne ton poids au check-in' });
+    if ($('ch-weight')) Charts.line($('ch-weight'), [
+      ...(s.profile.weight ? [{ x: s.profile.createdAt, y: s.profile.weight, note: 'départ' }] : []),
+      ...(s.profile.weightLog || []).map(w => ({ x: w.ts, y: w.kg })),
+      ...ci.filter(c => c.weight).map(c => ({ x: c.ts, y: c.weight, note: c.week })),
+    ].sort((a, b) => a.x - b.x), { color: 'var(--c-sport)', height: 180, label: 'Poids', fmt: v => `${v} kg`, emptyMsg: 'Renseigne ton poids au check-in' });
   },
 };

@@ -20,6 +20,12 @@ Plus on monte, plus il faut d'XP : passer du niveau n au niveau n+1 coûte `100 
 
 Chaque niveau débloque un titre, de nouvelles missions IRL ou les **récompenses réelles** que tu définis dans l'onglet Récompenses.
 
+## Personnage, avatar et carte
+
+- À la création : prénom, **taille et poids** (obligatoires), photo de profil (optionnelle, recadrée au carré, gardée sur l'appareil).
+- **Avatar** façon Bitmoji (onglet ouvert en cliquant sur ton portrait) : visage, teint, coupe, yeux, sourcils, bouche, pilosité, lunettes, couvre-chef, tenue, détails, geste, fond. Certains objets se débloquent en montant de niveau (casque de la Garde, couronne, armure…). Moteur de dessin : `js/avatar.js`.
+- **Carte de joueur** (aperçu dans Réglages et Guilde) : couleur selon le niveau du personnage (Cuivre 1–3, Argent 4–6, Or 7–9, Rubis 10–14, Légende 15+), photo ou avatar, niveaux par domaine. La carte partagée montre l'avatar, jamais la photo.
+
 ## PNJ et quêtes
 
 Six PNJ (Maître Kael, Lyra, Orin, Sœur Mira, Capitaine Brann, le Voyageur) apparaissent au hasard, 1 à 2 fois par jour, à l'ouverture ou après une action. Leurs quêtes durent plusieurs niveaux et touchent plusieurs domaines. Seules les actions faites après avoir accepté une quête comptent. Les quêtes se suivent dans l'onglet Quêtes. Les règles d'apparition et le contenu sont dans `js/data/npcs.js`.

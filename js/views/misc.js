@@ -100,9 +100,38 @@ Views.settings = {
       <header class="page-head"><p class="eyebrow">⚙️ Réglages</p><h1>Personnage & données</h1></header>
       <section class="cols">
         <div class="card">
+          <div class="card-head"><h2>Ma carte de joueur</h2><span class="muted small">aperçu</span></div>
+          <div class="pcard-wrap">${UI.playerCard(Engine.publicCard(s), { photoUrl: s.profile.display === 'photo' ? App.ppUrl : null })}</div>
+          <p class="muted small">Sa couleur évolue avec ton niveau : Cuivre (1–3), Argent (4–6), Or (7–9), Rubis (10–14), Légende (15+). Tes amis voient ta carte avec ton avatar, jamais ta photo.</p>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Apparence</h2></div>
+          <div class="look-pair">
+            <figure>${Avatar.svg(s.profile.avatar, { size: 110, label: 'Avatar' })}<figcaption>Avatar</figcaption></figure>
+            <figure>${App.ppUrl ? `<img class="pp-big" src="${App.ppUrl}" alt="Photo de profil">` : '<div class="pp-empty">Aucune photo</div>'}<figcaption>Photo</figcaption></figure>
+          </div>
+          <label>Afficher dans l'application
+            <select data-change="ppDisplay">
+              <option value="avatar" ${s.profile.display !== 'photo' ? 'selected' : ''}>Mon avatar</option>
+              <option value="photo" ${s.profile.display === 'photo' ? 'selected' : ''} ${App.ppUrl ? '' : 'disabled'}>Ma photo de profil</option>
+            </select>
+          </label>
+          <div class="btn-col" style="margin-top:12px">
+            <a class="btn" href="#/avatar">🎨 Modifier mon avatar</a>
+            <label class="btn">📷 ${App.ppUrl ? 'Changer de' : 'Ajouter une'} photo<input type="file" accept="image/*" data-change="ppChange" hidden></label>
+            ${App.ppUrl ? '<button class="btn ghost" data-act="ppRemove">Retirer la photo</button>' : ''}
+          </div>
+        </div>
+      </section>
+      <section class="cols">
+        <div class="card">
           <div class="card-head"><h2>Profil</h2></div>
           <form data-form="settings" class="stack-form">
             <label>Nom<input name="name" value="${U.esc(s.profile.name)}" required maxlength="30"></label>
+            <div class="row">
+              <label>Taille (cm)<input name="height" type="number" min="120" max="230" value="${s.profile.height || ''}" required></label>
+              <label>Poids actuel (kg)<input name="weight" type="number" min="30" max="300" step="0.1" value="${s.profile.weight || ''}" required></label>
+            </div>
             <label>Domaine professionnel${sel('proDomain', s.profile.proDomain, [['it', 'Informatique'], ['other', 'Autre']])}</label>
             <label>Nom du domaine (si « Autre »)<input name="proDomainName" value="${s.profile.proDomain === 'other' ? U.esc(s.profile.proDomainName) : ''}" maxlength="40"></label>
             <div class="row">
@@ -147,11 +176,41 @@ Views.settings = {
 };
 
 App.actions.switchProfile = el => App.switchProfile(el.dataset.id);
+App.actions.ppDisplay = el => {
+  App.state.profile.display = el.value === 'photo' && App.ppUrl ? 'photo' : 'avatar';
+  App.commit();
+};
+App.actions.ppChange = async el => {
+  const f = el.files && el.files[0];
+  if (!f) return;
+  try {
+    const url = await U.squareImage(f);
+    await Store.putPhoto(App.state, 'pp-' + App.state.id, url);
+    App.state.profile.hasPhoto = true;
+    App.state.profile.display = 'photo';
+    App.ppUrl = url;
+    App.toast('Photo de profil mise à jour.');
+    App.commit();
+  } catch (e) { App.toast('Photo illisible : ' + U.esc(e.message), 'warn'); }
+};
+App.actions.ppRemove = async () => {
+  await Store.delPhoto('pp-' + App.state.id);
+  App.state.profile.hasPhoto = false;
+  App.state.profile.display = 'avatar';
+  App.ppUrl = null;
+  App.commit();
+};
 App.actions.newProfile = () => App.newProfile();
 
 App.forms.settings = fd => {
   const s = App.state;
   s.profile.name = String(fd.get('name')).trim() || s.profile.name;
+  const h = Math.round(Number(fd.get('height'))), w = Math.round(Number(String(fd.get('weight')).replace(',', '.')) * 10) / 10;
+  if (h >= 120 && h <= 230) s.profile.height = h;
+  if (w >= 30 && w <= 300 && w !== s.profile.weight) {
+    s.profile.weight = w;
+    s.profile.weightLog = [...(s.profile.weightLog || []), { ts: Date.now(), kg: w }];
+  }
   s.profile.proDomain = fd.get('proDomain');
   s.profile.proDomainName = s.profile.proDomain === 'it' ? 'Informatique' : (String(fd.get('proDomainName') || '').trim() || 'Mon métier');
   s.settings.squatUnit = fd.get('squatUnit');

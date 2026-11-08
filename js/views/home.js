@@ -98,7 +98,7 @@ Views.home = {
             ${arcs.length ? `<ul class="arc-mini">${arcs.map(a => {
               const p = Engine.arcProgress(s, a);
               const ready = s.npc.arcs[a.id].status === 'ready';
-              return `<li><span class="am-ico">${NPCS[a.npc].icon}</span><div><strong>${U.esc(a.title)}</strong>
+              return `<li><span class="am-ico">${UI.npcFace(a.npc, 36)}</span><div><strong>${U.esc(a.title)}</strong>
                 <div class="xpbar sm"><span style="width:${(p.count / p.steps.length) * 100}%"></span></div>
                 <small class="muted">${ready ? '✨ Retourne voir ' + U.esc(NPCS[a.npc].name) : `${p.count}/${p.steps.length} étapes · ${U.esc(NPCS[a.npc].name)}`}</small></div></li>`;
             }).join('')}</ul>` : '<p class="muted small">Aucune quête en cours. Les PNJ apparaissent au hasard, une à deux fois par jour, quand tu agis.</p>'}
@@ -191,7 +191,20 @@ Views.onboarding = {
         <h1>Ta vie est le jeu.<br>Ton personnage, c'est toi.</h1>
         <p class="lead">Ici, aucun XP ne s'obtient en planifiant. Tu gagnes des niveaux en faisant de vraies choses : tests physiques, séances, courses, photos hebdomadaires, tests de compétences, livres terminés, quêtes confiées par des PNJ.</p>
         <form data-form="onboard" class="card onboard-form">
-          <label>Ton prénom ou pseudo<input name="name" required maxlength="30" autofocus></label>
+          <div class="ob-id">
+            <label class="pp-pick" title="Photo de profil (optionnelle)">
+              <img id="ob-pp" alt=""><span>＋ Photo</span>
+              <input type="file" name="photo" accept="image/*" data-preview="ob-pp">
+            </label>
+            <div class="stack-form">
+              <label>Ton prénom ou pseudo<input name="name" required maxlength="30" autofocus></label>
+              <div class="row">
+                <label>Taille (cm)<input name="height" type="number" min="120" max="230" required inputmode="numeric"></label>
+                <label>Poids (kg)<input name="weight" type="number" min="30" max="300" step="0.1" required inputmode="decimal"></label>
+              </div>
+            </div>
+          </div>
+          <p class="muted small">La photo est optionnelle et reste sur ton appareil. Tu créeras aussi ton avatar à l'étape suivante.</p>
           <label>Ton domaine professionnel
             <select name="proDomain" data-change="obDomain">
               <option value="it">💻 Informatique (tests disponibles : réseau, dev, cyber, cloud, systèmes, data)</option>
@@ -232,21 +245,36 @@ App.actions.obCancel = async () => {
   const list = await Store.listProfiles();
   if (list.length) App.switchProfile(list[0].id);
 };
-App.forms.onboard = fd => {
+App.forms.onboard = async (fd, form) => {
   const s = App.state;
+  const height = Math.round(Number(fd.get('height')));
+  const weight = Math.round(Number(String(fd.get('weight')).replace(',', '.')) * 10) / 10;
+  if (!(height >= 120 && height <= 230) || !(weight >= 30 && weight <= 300)) { App.toast('Taille ou poids invalide.', 'warn'); return; }
+  form.querySelector('button.primary').disabled = true;
   s.id = U.uid();
   s.profile = {
     name: String(fd.get('name')).trim(),
     proDomain: fd.get('proDomain'),
     proDomainName: fd.get('proDomain') === 'other' ? (String(fd.get('proDomainName') || '').trim() || 'Mon métier') : GAME.proDomains.it.name,
     createdAt: Date.now(),
+    height, weight,
+    avatar: Avatar.sanitize(s, Avatar.random()),
+    display: 'avatar',
   };
+  const file = fd.get('photo');
+  if (file && file.size) {
+    try {
+      await Store.putPhoto(s, 'pp-' + s.id, await U.squareImage(file));
+      s.profile.hasPhoto = true;
+      s.profile.display = 'photo';
+    } catch (e) { App.toast('Photo ignorée : ' + U.esc(e.message), 'warn'); }
+  }
   s.settings.squatUnit = fd.get('squatUnit');
   s.settings.runTest = fd.get('runTest');
   s.settings.weeklyGoal = U.clamp(Math.round(Number(fd.get('weeklyGoal')) || 3), 1, 14);
   Store.setActive(s.id);
-  App.save(true);
-  App.toast('<b>Personnage créé.</b><small>Commence par tes tests de référence.</small>');
-  App.go('#/sport/tests');
+  await App.save(true);
+  App.toast('<b>Personnage créé.</b><small>Dernière étape : ton avatar.</small>');
+  App.go('#/avatar/first');
   App.afterProfileLoad();
 };
