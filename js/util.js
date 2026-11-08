@@ -50,6 +50,28 @@ const U = {
     const m = Math.floor(sec / 60), s = sec % 60;
     return s ? `${m} min ${String(s).padStart(2, '0')}` : `${m} min`;
   },
+  /* Rythme en secondes/km -> "5:12" */
+  fmtPace(sec) {
+    if (!isFinite(sec)) return '—';
+    sec = Math.round(sec);
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  },
+  /* Durée en secondes -> "1:02:15" ou "42:10" */
+  fmtClock(sec) {
+    sec = Math.round(sec);
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
+  },
+  /* "42", "42:10" ou "1:02:15" -> secondes (un nombre seul = minutes) */
+  parseClock(str) {
+    const p = String(str || '').trim().split(':').map(Number);
+    if (!p.length || p.some(n => !isFinite(n) || n < 0)) return NaN;
+    if (p.length === 1) return p[0] * 60;
+    if (p.length === 2) return p[0] * 60 + p[1];
+    if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+    return NaN;
+  },
+  fmtKm(km) { return `${Number(km).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} km`; },
   fmtRemaining(ms) {
     const h = Math.floor(ms / 3600000), m = Math.ceil((ms % 3600000) / 60000);
     return h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`;

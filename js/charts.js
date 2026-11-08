@@ -108,18 +108,23 @@ const Charts = (() => {
   }
 
   /* Colonnes : items = [{ label, value, tip }] */
-  function columns(el, items, { color = 'var(--c-pro)', height = 200, fmt = v => v, label = '' } = {}) {
-    if (!items.some(i => i.value > 0)) return empty(el, 'Aucune XP sur la période');
+  function columns(el, items, { color = 'var(--c-pro)', height = 200, fmt = v => v, label = '', goal = null, emptyMsg = 'Aucune XP sur la période' } = {}) {
+    if (!items.some(i => i.value > 0)) return empty(el, emptyMsg);
     const { svg, w, h, tip } = frame(el, height);
     svg.setAttribute('aria-label', label);
     const m = { l: 44, r: 8, t: 14, b: 28 };
     const iw = w - m.l - m.r, ih = h - m.t - m.b;
-    const yMax = niceMax(Math.max(...items.map(i => i.value)) * 1.1);
+    const yMax = niceMax(Math.max(goal || 0, ...items.map(i => i.value)) * 1.1);
     const Y = v => m.t + ih - (v / yMax) * ih;
     for (let i = 0; i <= 4; i++) {
       const v = (yMax / 4) * i, y = Y(v);
       add(svg, 'line', { x1: m.l, x2: w - m.r, y1: y, y2: y, class: i === 0 ? 'axis' : 'grid' });
       add(svg, 'text', { x: m.l - 8, y: y + 4, 'text-anchor': 'end', class: 'tick' }, fmt(v));
+    }
+    if (goal) {
+      const gy = Y(goal);
+      add(svg, 'line', { x1: m.l, x2: w - m.r, y1: gy, y2: gy, class: 'goal-line' });
+      add(svg, 'text', { x: m.l + 4, y: gy - 5, 'text-anchor': 'start', class: 'tick goal-label' }, `Objectif ${goal}`);
     }
     const slot = iw / items.length, bw = Math.min(36, slot - 2);
     items.forEach((it, i) => {

@@ -40,7 +40,7 @@ Views.stats = {
         <div id="ch-weeks"></div>
       </section>
 
-      <section class="grid3">
+      <section class="grid-auto">
         ${exos.map(k => `<div class="card"><div class="card-head"><h3>${GAME.exercises[k].icon} ${GAME.exercises[k].name}</h3><span class="muted small">${GAME.exercises[k].unit}</span></div><div id="ch-${k}"></div></div>`).join('')}
       </section>
 
@@ -51,7 +51,7 @@ Views.stats = {
 
       <section class="card">
         <details><summary><strong>Tableau des tests physiques</strong></summary>
-          ${UI.table(['Date', 'Exercice', 'Résultat'], s.sport.tests.slice().sort((a, b) => b.ts - a.ts).map(t => [U.fmtDate(t.ts), GAME.exercises[t.exo].name, t.exo === 'plank' ? U.fmtDuration(t.value) : `${t.value} ${GAME.exercises[t.exo].unit}`]))}
+          ${UI.table(['Date', 'Exercice', 'Résultat'], s.sport.tests.slice().sort((a, b) => b.ts - a.ts).map(t => [U.fmtDate(t.ts), GAME.exercises[t.exo].name, Engine.fmtTest(t.exo, t.value)]))}
         </details>
       </section>
 
@@ -90,7 +90,7 @@ Views.stats = {
       const pts = Engine.testsFor(s, k).map(t => ({ x: t.ts, y: t.value }));
       Charts.line(el, pts, {
         color: 'var(--c-sport)', height: 180, label: GAME.exercises[k].name,
-        fmt: v => (k === 'plank' ? U.fmtDuration(v) : `${v}`), emptyMsg: 'Fais ton premier test',
+        fmt: v => (k === 'plank' ? U.fmtDuration(v) : k === 'pace5k' ? U.fmtPace(v) : `${v}`), emptyMsg: 'Fais ton premier test',
       });
     }
     const ci = s.sport.checkins.slice().sort((a, b) => a.ts - b.ts);

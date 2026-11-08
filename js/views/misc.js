@@ -1,4 +1,4 @@
-/* Récompenses réelles, titres, réglages */
+/* Récompenses réelles, titres, réglages, profils */
 Views.rewards = {
   render() {
     const s = App.state;
@@ -16,8 +16,8 @@ Views.rewards = {
 
     const rankRows = Engine.activeExercises(s).map(k => {
       const b = Engine.best(s, k);
-      const cur = b == null ? null : Engine.rank(k, b).letter;
-      return `<div class="title-row"><span class="tr-d">${GAME.exercises[k].icon} ${GAME.exercises[k].name}</span><div class="tr-list">${GAME.exercises[k].ranks.map(([v, l]) => `<span class="ttl ${b != null && b >= v ? 'on' : ''} ${cur === l ? 'cur' : ''}">${l} <small>${k === 'plank' ? U.fmtDuration(v) : v}</small></span>`).join('')}</div></div>`;
+      const idx = b == null ? -1 : Engine.rank(k, b).index;
+      return `<div class="title-row"><span class="tr-d">${GAME.exercises[k].icon} ${GAME.exercises[k].name}</span><div class="tr-list">${GAME.exercises[k].ranks.slice(1).map(([v, l], i) => `<span class="ttl ${idx >= i + 1 ? 'on' : ''} ${idx === i + 1 ? 'cur' : ''}">${l} <small>${Engine.fmtTest(k, v)}</small></span>`).join('')}</div></div>`;
     }).join('');
 
     return `
@@ -56,8 +56,12 @@ Views.rewards = {
         </div>
       </section>
 
+      ${s.npc.titles.length ? `<section class="card">
+        <div class="card-head"><h2>📜 Titres de quêtes</h2><span class="muted small">offerts par les PNJ</span></div>
+        <div class="tr-list">${s.npc.titles.map(t => `<span class="ttl on">${NPCS[t.npc]?.icon || ''} ${U.esc(t.title)} <small>${U.fmtShort(t.ts)}</small></span>`).join('')}</div>
+      </section>` : ''}
       <section class="card">
-        <div class="card-head"><h2>🏷️ Titres</h2></div>
+        <div class="card-head"><h2>🏷️ Titres de niveau</h2></div>
         ${titleRows}
       </section>
       <section class="card">
@@ -67,7 +71,7 @@ Views.rewards = {
   },
 };
 
-App.forms.reward = (fd) => {
+App.forms.reward = fd => {
   const text = String(fd.get('text') || '').trim();
   const level = Math.round(Number(fd.get('level')));
   if (!text || !(level >= 2)) return;
@@ -91,6 +95,7 @@ App.actions.rewardDel = el => {
 Views.settings = {
   render() {
     const s = App.state;
+    const sel = (name, cur, opts) => `<select name="${name}">${opts.map(([v, l]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
     return `
       <header class="page-head"><p class="eyebrow">⚙️ Réglages</p><h1>Personnage & données</h1></header>
       <section class="cols">
@@ -98,39 +103,60 @@ Views.settings = {
           <div class="card-head"><h2>Profil</h2></div>
           <form data-form="settings" class="stack-form">
             <label>Nom<input name="name" value="${U.esc(s.profile.name)}" required maxlength="30"></label>
-            <label>Domaine professionnel<select name="proDomain">
-              <option value="it" ${s.profile.proDomain === 'it' ? 'selected' : ''}>Informatique</option>
-              <option value="other" ${s.profile.proDomain === 'other' ? 'selected' : ''}>Autre</option></select></label>
+            <label>Domaine professionnel${sel('proDomain', s.profile.proDomain, [['it', 'Informatique'], ['other', 'Autre']])}</label>
             <label>Nom du domaine (si « Autre »)<input name="proDomainName" value="${s.profile.proDomain === 'other' ? U.esc(s.profile.proDomainName) : ''}" maxlength="40"></label>
-            <label>Test de squat<select name="squatUnit">
-              <option value="reps" ${s.settings.squatUnit === 'reps' ? 'selected' : ''}>Répétitions max</option>
-              <option value="kg" ${s.settings.squatUnit === 'kg' ? 'selected' : ''}>Charge max (kg)</option></select></label>
-            <label>Thème<select name="theme">
-              <option value="auto" ${s.settings.theme === 'auto' ? 'selected' : ''}>Système</option>
-              <option value="dark" ${s.settings.theme === 'dark' ? 'selected' : ''}>Sombre</option>
-              <option value="light" ${s.settings.theme === 'light' ? 'selected' : ''}>Clair</option></select></label>
+            <div class="row">
+              <label>Test de squat${sel('squatUnit', s.settings.squatUnit, [['reps', 'Répétitions max'], ['kg', 'Charge max (kg)']])}</label>
+              <label>Test de course${sel('runTest', s.settings.runTest, [['cooper', 'Distance en 12 min'], ['pace5k', 'Rythme sur 5 km']])}</label>
+            </div>
+            <div class="row">
+              <label>Séances par semaine<input name="weeklyGoal" type="number" min="1" max="14" value="${s.settings.weeklyGoal}" required></label>
+              <label>Thème${sel('theme', s.settings.theme, [['auto', 'Système'], ['dark', 'Sombre'], ['light', 'Clair']])}</label>
+            </div>
             <button class="btn primary">Enregistrer</button>
           </form>
         </div>
-        <div class="card">
-          <div class="card-head"><h2>Données</h2></div>
-          <p class="muted small">Tout est stocké uniquement dans ce navigateur, photos comprises. Rien n'est envoyé sur internet. Exporte régulièrement pour ne rien perdre.</p>
-          <div class="btn-col">
-            <button class="btn" data-act="exportData">⬇️ Exporter une sauvegarde (.json)</button>
-            <label class="btn">⬆️ Importer une sauvegarde<input type="file" accept="application/json,.json" data-change="importData" hidden></label>
-            <button class="btn danger" data-act="resetAll">🗑️ Tout effacer</button>
+        <div class="stack">
+          <div class="card">
+            <div class="card-head"><h2>Profils de cet appareil</h2></div>
+            <p class="muted small">Chaque membre de la famille peut avoir son personnage sur le même navigateur. Tous apparaissent dans la Guilde.</p>
+            <ul class="profiles" id="profiles"><li class="muted small">Chargement…</li></ul>
+            <button class="btn" data-act="newProfile">＋ Créer un autre personnage</button>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Données</h2></div>
+            <p class="muted small">Tout est stocké uniquement dans ce navigateur, photos comprises. Rien n'est envoyé sur internet. Exporte régulièrement pour ne rien perdre.</p>
+            <div class="btn-col">
+              <button class="btn" data-act="exportData">⬇️ Exporter la sauvegarde de ce profil</button>
+              <label class="btn">⬆️ Importer une sauvegarde dans ce profil<input type="file" accept="application/json,.json" data-change="importData" hidden></label>
+              <button class="btn danger" data-act="resetAll">🗑️ Supprimer ce personnage</button>
+            </div>
           </div>
         </div>
       </section>`;
   },
+  async mount() {
+    const el = document.getElementById('profiles');
+    if (!el) return;
+    const list = await Store.listProfiles();
+    el.innerHTML = list.map(p => `<li class="${p.id === App.state.id ? 'current' : ''}">
+      <span class="avatar xs">${U.esc((p.name || '?').charAt(0).toUpperCase())}</span><strong>${U.esc(p.name)}</strong>
+      ${p.id === App.state.id ? '<span class="pill ok">Actif</span>' : `<button class="btn sm" data-act="switchProfile" data-id="${p.id}">Jouer</button>`}
+    </li>`).join('');
+  },
 };
 
-App.forms.settings = (fd) => {
+App.actions.switchProfile = el => App.switchProfile(el.dataset.id);
+App.actions.newProfile = () => App.newProfile();
+
+App.forms.settings = fd => {
   const s = App.state;
   s.profile.name = String(fd.get('name')).trim() || s.profile.name;
   s.profile.proDomain = fd.get('proDomain');
   s.profile.proDomainName = s.profile.proDomain === 'it' ? 'Informatique' : (String(fd.get('proDomainName') || '').trim() || 'Mon métier');
   s.settings.squatUnit = fd.get('squatUnit');
+  s.settings.runTest = fd.get('runTest');
+  s.settings.weeklyGoal = U.clamp(Math.round(Number(fd.get('weeklyGoal')) || 3), 1, 14);
   s.settings.theme = fd.get('theme');
   App.applyTheme();
   App.toast('Réglages enregistrés.');
@@ -138,11 +164,11 @@ App.forms.settings = (fd) => {
 };
 
 App.actions.exportData = async () => {
-  const photos = await Store.allPhotos();
-  const blob = new Blob([JSON.stringify({ app: 'rpg-irl', exportedAt: Date.now(), state: App.state, photos })], { type: 'application/json' });
+  const photos = await Store.allPhotos(App.state);
+  const blob = new Blob([JSON.stringify({ app: 'play-your-life', exportedAt: Date.now(), state: App.state, photos })], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `rpg-irl-sauvegarde-${U.dayKey()}.json`;
+  a.download = `play-your-life-${(App.state.profile.name || 'profil').toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-${U.dayKey()}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 };
@@ -152,24 +178,30 @@ App.actions.importData = async el => {
   if (!f) return;
   try {
     const data = JSON.parse(await f.text());
-    if (data.app !== 'rpg-irl' || !data.state) throw new Error('Fichier non reconnu');
-    if (!confirm('Remplacer toutes les données actuelles par cette sauvegarde ?')) return;
-    await Store.clearPhotos();
-    for (const p of data.photos || []) await Store.putPhoto(p.id, p.dataUrl);
-    Store.save(data.state);
-    App.state = Store.load();
+    if (!['rpg-irl', 'play-your-life'].includes(data.app) || !data.state) throw new Error('Fichier non reconnu');
+    if (!confirm(`Remplacer les données du profil « ${App.state.profile.name} » par cette sauvegarde ?`)) return;
+    for (const p of await Store.allPhotos(App.state)) await Store.delPhoto(p.id);
+    const st = Store.migrate(data.state);
+    st.id = App.state.id;
+    for (const p of data.photos || []) await Store.putPhoto(st, p.id, p.dataUrl);
+    App.state = st;
+    await App.save(true);
     App.applyTheme();
     App.toast('Sauvegarde importée.');
     App.go('#/home');
   } catch (e) {
     App.toast('Import impossible : ' + U.esc(e.message), 'warn');
   }
+  el.value = '';
 };
 
 App.actions.resetAll = async () => {
-  if (!confirm('Effacer définitivement le personnage, l\'historique et les photos ? Cette action est irréversible.')) return;
-  await Store.clearPhotos();
-  Store.wipe();
-  App.state = Store.load();
+  if (!confirm(`Supprimer définitivement le personnage « ${App.state.profile.name} », son historique et ses photos ? Cette action est irréversible.`)) return;
+  await Store.deleteProfile(App.state.id);
+  App.state.id = null; // empêche toute réécriture du profil supprimé
+  const list = await Store.listProfiles();
+  if (list.length) return App.switchProfile(list[0].id);
+  App.state = Store.fresh();
+  App._profilesCache = [];
   App.go('#/onboarding');
 };
