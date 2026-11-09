@@ -2,7 +2,7 @@
 Views.rewards = {
   render() {
     const s = App.state;
-    const name = d => (d === 'char' ? '⭐ Personnage' : `${GAME.domains[d].icon} ${GAME.domains[d].name}`);
+    const name = d => (d === 'char' ? 'Personnage' : `${GAME.domains[d].icon} ${GAME.domains[d].name}`);
     const rw = s.rewards.slice().sort((a, b) => a.level - b.level);
     const ready = rw.filter(r => Engine.rewardUnlocked(s, r) && !r.claimedTs);
     const locked = rw.filter(r => !Engine.rewardUnlocked(s, r));
@@ -11,7 +11,7 @@ Views.rewards = {
 
     const titleRows = ['char', ...GAME.domainOrder].map(d => {
       const lv = Engine.levelOf(s, d);
-      return `<div class="title-row"><span class="tr-d">${name(d)}</span><div class="tr-list">${GAME.titles[d].map(([l, t]) => `<span class="ttl ${lv >= l ? 'on' : ''}" title="Niveau ${l}">${lv >= l ? '' : '🔒 '}${U.esc(t)} <small>${l}</small></span>`).join('')}</div></div>`;
+      return `<div class="title-row"><span class="tr-d">${name(d)}</span><div class="tr-list">${GAME.titles[d].map(([l, t]) => `<span class="ttl ${lv >= l ? 'on' : ''}" title="Niveau ${l}">${lv >= l ? '' : ''}${U.esc(t)} <small>${l}</small></span>`).join('')}</div></div>`;
     }).join('');
 
     const rankRows = Engine.activeExercises(s).map(k => {
@@ -22,7 +22,7 @@ Views.rewards = {
 
     return `
       <header class="page-head">
-        <p class="eyebrow">🎁 Récompenses</p>
+        <p class="eyebrow">Récompenses</p>
         <h1>Chaque niveau se paie en vrai.</h1>
         <p class="muted">Les meilleures récompenses ne sont pas des badges : ce sont des choses réelles que tu t'offres uniquement quand tu as atteint le niveau. Fixe-les maintenant, avant d'y être.</p>
       </header>
@@ -42,30 +42,30 @@ Views.rewards = {
         </div>
 
         <div class="card">
-          <div class="card-head"><h2>🎉 À réclamer</h2><span class="pill ${ready.length ? 'ok' : ''}">${ready.length}</span></div>
+          <div class="card-head"><h2>À réclamer</h2><span class="pill ${ready.length ? 'ok' : ''}">${ready.length}</span></div>
           ${ready.length ? `<ul class="rewards">${ready.map(r => `<li class="reward ready"><div><strong>${U.esc(r.text)}</strong><small>${name(r.domain)} niv. ${r.level} atteint</small></div><button class="btn primary sm" data-act="rewardClaim" data-id="${r.id}">Je l'ai prise ✔</button></li>`).join('')}</ul>`
             : '<p class="empty-hint">Rien à réclamer pour l\'instant. Monte de niveau.</p>'}
-          <h3>🔒 En jeu</h3>
+          <h3>En jeu</h3>
           ${locked.length ? `<ul class="rewards">${locked.map(r => {
             const lv = Engine.levelOf(s, r.domain);
             return `<li class="reward"><div><strong>${U.esc(r.text)}</strong><small>${name(r.domain)} : niveau ${lv} / ${r.level}</small>
               <div class="xpbar sm ${r.domain === 'char' ? '' : 'dom-' + r.domain}"><span style="width:${Math.min(100, (lv / r.level) * 100).toFixed(0)}%"></span></div></div>
               <button class="icon-btn" data-act="rewardDel" data-id="${r.id}" aria-label="Supprimer">✕</button></li>`;
           }).join('')}</ul>` : '<p class="muted small">Aucune récompense en jeu. Ajoute-en au moins une par domaine.</p>'}
-          ${claimed.length ? `<h3>✅ Obtenues</h3><ul class="rewards">${claimed.map(r => `<li class="reward claimed"><div><strong>${U.esc(r.text)}</strong><small>${name(r.domain)} niv. ${r.level} · le ${U.fmtDate(r.claimedTs)}</small></div></li>`).join('')}</ul>` : ''}
+          ${claimed.length ? `<h3>Obtenues</h3><ul class="rewards">${claimed.map(r => `<li class="reward claimed"><div><strong>${U.esc(r.text)}</strong><small>${name(r.domain)} niv. ${r.level} · le ${U.fmtDate(r.claimedTs)}</small></div></li>`).join('')}</ul>` : ''}
         </div>
       </section>
 
       ${s.npc.titles.length ? `<section class="card">
-        <div class="card-head"><h2>📜 Titres de quêtes</h2><span class="muted small">offerts par les PNJ</span></div>
+        <div class="card-head"><h2>Titres de quêtes</h2><span class="muted small">offerts par les PNJ</span></div>
         <div class="tr-list">${s.npc.titles.map(t => `<span class="ttl on">${NPCS[t.npc]?.icon || ''} ${U.esc(t.title)} <small>${U.fmtShort(t.ts)}</small></span>`).join('')}</div>
       </section>` : ''}
       <section class="card">
-        <div class="card-head"><h2>🏷️ Titres de niveau</h2></div>
+        <div class="card-head"><h2>Titres de niveau</h2></div>
         ${titleRows}
       </section>
       <section class="card">
-        <div class="card-head"><h2>🥇 Rangs physiques</h2></div>
+        <div class="card-head"><h2>Rangs physiques</h2></div>
         ${rankRows}
       </section>`;
   },
@@ -97,7 +97,7 @@ Views.settings = {
     const s = App.state;
     const sel = (name, cur, opts) => `<select name="${name}">${opts.map(([v, l]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
     return `
-      <header class="page-head"><p class="eyebrow">⚙️ Réglages</p><h1>Personnage & données</h1></header>
+      <header class="page-head"><p class="eyebrow">Réglages</p><h1>Personnage & données</h1></header>
       <section class="cols">
         <div class="card">
           <div class="card-head"><h2>Ma carte de joueur</h2><span class="muted small">aperçu</span></div>
@@ -117,8 +117,8 @@ Views.settings = {
             </select>
           </label>
           <div class="btn-col" style="margin-top:12px">
-            <a class="btn" href="#/avatar">🎨 Modifier mon avatar</a>
-            <label class="btn">📷 ${App.ppUrl ? 'Changer de' : 'Ajouter une'} photo<input type="file" accept="image/*" data-change="ppChange" hidden></label>
+            <a class="btn" href="#/avatar">Modifier mon avatar</a>
+            <label class="btn">${App.ppUrl ? 'Changer de' : 'Ajouter une'} photo<input type="file" accept="image/*" data-change="ppChange" hidden></label>
             ${App.ppUrl ? '<button class="btn ghost" data-act="ppRemove">Retirer la photo</button>' : ''}
           </div>
         </div>
@@ -141,6 +141,7 @@ Views.settings = {
             <div class="row">
               <label>Séances par semaine<input name="weeklyGoal" type="number" min="1" max="14" value="${s.settings.weeklyGoal}" required></label>
               <label>Thème${sel('theme', s.settings.theme, [['auto', 'Système'], ['dark', 'Sombre'], ['light', 'Clair']])}</label>
+              <label>Sons${sel('sound', s.settings.sound === false ? 'off' : 'on', [['on', 'Activés'], ['off', 'Coupés']])}</label>
             </div>
             <button class="btn primary">Enregistrer</button>
           </form>
@@ -156,9 +157,9 @@ Views.settings = {
             <div class="card-head"><h2>Données</h2></div>
             <p class="muted small">Tout est stocké uniquement dans ce navigateur, photos comprises. Rien n'est envoyé sur internet. Exporte régulièrement pour ne rien perdre.</p>
             <div class="btn-col">
-              <button class="btn" data-act="exportData">⬇️ Exporter la sauvegarde de ce profil</button>
-              <label class="btn">⬆️ Importer une sauvegarde dans ce profil<input type="file" accept="application/json,.json" data-change="importData" hidden></label>
-              <button class="btn danger" data-act="resetAll">🗑️ Supprimer ce personnage</button>
+              <button class="btn" data-act="exportData">Exporter la sauvegarde de ce profil</button>
+              <label class="btn">Importer une sauvegarde dans ce profil<input type="file" accept="application/json,.json" data-change="importData" hidden></label>
+              <button class="btn danger" data-act="resetAll">Supprimer ce personnage</button>
             </div>
           </div>
         </div>
@@ -217,6 +218,7 @@ App.forms.settings = fd => {
   s.settings.runTest = fd.get('runTest');
   s.settings.weeklyGoal = U.clamp(Math.round(Number(fd.get('weeklyGoal')) || 3), 1, 14);
   s.settings.theme = fd.get('theme');
+  s.settings.sound = fd.get('sound') !== 'off';
   App.applyTheme();
   App.toast('Réglages enregistrés.');
   App.commit();

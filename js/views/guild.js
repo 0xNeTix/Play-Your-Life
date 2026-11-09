@@ -20,7 +20,7 @@ Views.guild = {
   render() {
     return `
       <header class="page-head">
-        <p class="eyebrow">🛡️ Guilde</p>
+        <p class="eyebrow">Guilde</p>
         <h1>On progresse plus vite ensemble.</h1>
         <p class="muted">Compare-toi à tes amis et ta famille. Seule ta <strong>carte de joueur</strong> est partagée : niveaux, séries, records. Jamais tes photos ni ton historique détaillé.</p>
       </header>
@@ -40,15 +40,15 @@ Views.guild = {
           <div class="card-head"><h2>Partager ma carte</h2></div>
           <div class="pcard-wrap">${UI.playerCard(Engine.publicCard(App.state))}</div>
           <p class="muted small">Exporte ta carte et envoie-la à tes amis (messagerie, mail). Ils l'importent de leur côté. Renvoie-la de temps en temps pour mettre ton classement à jour.</p>
-          <button class="btn primary" data-act="exportCard">⬇️ Exporter ma carte de joueur</button>
+          <button class="btn primary" data-act="exportCard">Exporter ma carte de joueur</button>
         </div>
         <div class="card">
           <div class="card-head"><h2>Ajouter un ami</h2></div>
           <p class="muted small">Importe la carte qu'un ami t'a envoyée. Une nouvelle carte du même joueur remplace l'ancienne.</p>
-          <label class="btn">⬆️ Importer une carte<input type="file" accept="application/json,.json" data-change="importCard" hidden></label>
+          <label class="btn">Importer une carte<input type="file" accept="application/json,.json" data-change="importCard" hidden></label>
         </div>
       </section>
-      <div class="callout small">🔮 Prochaine étape possible : un serveur commun pour que la guilde se mette à jour toute seule, avec des défis entre joueurs. L'application est déjà structurée pour ça.</div>`;
+      <div class="callout small">Prochaine étape possible : un serveur commun pour que la guilde se mette à jour toute seule, avec des défis entre joueurs. L'application est déjà structurée pour ça.</div>`;
   },
 
   renderBoard(cards) {
@@ -57,7 +57,7 @@ Views.guild = {
     const key = this.sortBy;
     const val = c => (GAME.domains[key] ? c.domains?.[key] || 0 : c[key] || 0);
     cards.sort((a, b) => val(b) - val(a) || (b.xp || 0) - (a.xp || 0));
-    const medal = i => ['🥇', '🥈', '🥉'][i] || `${i + 1}`;
+    const medal = i => `<span class="medal m${Math.min(i + 1, 4)}">${i + 1}</span>`;
     el.innerHTML = cards.length ? `<div class="table-wrap"><table class="guild-table">
       <thead><tr><th>#</th><th>Joueur</th><th>Niv.</th>${GAME.domainOrder.map(d => `<th title="${GAME.domains[d].name}">${GAME.domains[d].icon}</th>`).join('')}<th>🔥</th><th>XP 7 j</th><th></th></tr></thead>
       <tbody>${cards.map((c, i) => `<tr class="${c.me ? 'me' : ''}">
@@ -91,7 +91,7 @@ App.actions.importCard = async el => {
     if (c.id === App.state.id) throw new Error('c\'est ta propre carte');
     const clean = {
       app: c.app, v: c.v, id: String(c.id), name: String(c.name).slice(0, 30), title: String(c.title || '').slice(0, 40),
-      updatedAt: Number(c.updatedAt) || Date.now(), level: Number(c.level) || 1, xp: Number(c.xp) || 0, xp7: Number(c.xp7) || 0,
+      updatedAt: Number(c.updatedAt) || Date.now(), since: Number(c.since) || null, level: Number(c.level) || 1, xp: Number(c.xp) || 0, xp7: Number(c.xp7) || 0,
       streak: Number(c.streak) || 0, weekStreak: Number(c.weekStreak) || 0, runKm: Number(c.runKm) || 0,
       domains: Object.fromEntries(GAME.domainOrder.map(d => [d, Number(c.domains?.[d]) || 1])),
       avatar: c.avatar && typeof c.avatar === 'object' ? Avatar.sanitizeForeign(c.avatar) : null,

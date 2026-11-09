@@ -2,10 +2,10 @@
 const GAME = {
   /* Ordre fixe = ordre des couleurs */
   domains: {
-    pro:        { name: 'Métier',     icon: '💼', route: 'pro',   tagline: 'Compétences professionnelles' },
-    sport:      { name: 'Corps',      icon: '💪', route: 'sport', tagline: 'Force, endurance, physique' },
-    intel:      { name: 'Esprit',     icon: '🧠', route: 'intel', tagline: 'Lecture, apprentissage' },
-    discipline: { name: 'Discipline', icon: '⚡', route: 'home',  tagline: 'Passer à l\'action, chaque jour' },
+    pro:        { name: 'Métier',     icon: Icons.get('pro'), route: 'pro',   tagline: 'Compétences professionnelles' },
+    sport:      { name: 'Corps',      icon: Icons.get('sport'), route: 'sport', tagline: 'Force, endurance, physique' },
+    intel:      { name: 'Esprit',     icon: Icons.get('intel'), route: 'intel', tagline: 'Lecture, apprentissage' },
+    discipline: { name: 'Discipline', icon: Icons.get('discipline'), route: 'home',  tagline: 'Passer à l\'action, chaque jour' },
   },
   domainOrder: ['pro', 'sport', 'intel', 'discipline'],
 
@@ -117,30 +117,30 @@ const GAME = {
   /* Exercices de test. Rangs : seuils absolus. lowerBetter : une valeur plus basse est meilleure (rythme).
      input 'time' : saisie mm:ss convertie en secondes. */
   exercises: {
-    pullups: { name: 'Tractions', icon: '🧗', unit: 'rép.', max: 200, rule: 'Prise pronation, bras tendus en bas, menton au-dessus de la barre en haut, sans élan.',
+    pullups: { name: 'Tractions', icon: '', unit: 'rép.', max: 200, rule: 'Prise pronation, bras tendus en bas, menton au-dessus de la barre en haut, sans élan.',
       ranks: [[0, 'E'], [1, 'D'], [5, 'C'], [10, 'B'], [15, 'A'], [20, 'S'], [30, 'S+']] },
-    cooper:  { name: 'Course : distance en 12 min', icon: '🏃', unit: 'm', max: 6000, rule: 'Test de Cooper : cours le plus loin possible en 12 minutes, sur terrain plat. Note la distance en mètres.',
+    cooper:  { name: 'Course : distance en 12 min', icon: '', unit: 'm', max: 6000, rule: 'Test de Cooper : cours le plus loin possible en 12 minutes, sur terrain plat. Note la distance en mètres.',
       ranks: [[0, 'E'], [1600, 'D'], [2000, 'C'], [2400, 'B'], [2800, 'A'], [3200, 'S'], [3600, 'S+']] },
-    pace5k:  { name: 'Course : rythme sur 5 km', icon: '🏃', unit: '/km', max: 1200, lowerBetter: true, input: 'time5k', rule: 'Cours 5 km le plus vite possible. Saisis ton temps total (mm:ss), le rythme au km est calculé.',
+    pace5k:  { name: 'Course : rythme sur 5 km', icon: '', unit: '/km', max: 1200, lowerBetter: true, input: 'time5k', rule: 'Cours 5 km le plus vite possible. Saisis ton temps total (mm:ss), le rythme au km est calculé.',
       ranks: [[Infinity, 'E'], [450, 'D'], [390, 'C'], [345, 'B'], [300, 'A'], [260, 'S'], [225, 'S+']] },
-    pushups: { name: 'Pompes', icon: '🫸', unit: 'rép.', max: 1000, rule: 'Amplitude complète, poitrine à un poing du sol, pas de pause de plus de 2 s.',
+    pushups: { name: 'Pompes', icon: '', unit: 'rép.', max: 1000, rule: 'Amplitude complète, poitrine à un poing du sol, pas de pause de plus de 2 s.',
       ranks: [[0, 'E'], [10, 'D'], [20, 'C'], [35, 'B'], [50, 'A'], [75, 'S'], [100, 'S+']] },
-    squats:  { name: 'Squats', icon: '🦵', unit: 'rép.', max: 2000, rule: 'Cuisses au moins parallèles au sol, talons au sol, sans pause.',
+    squats:  { name: 'Squats', icon: '', unit: 'rép.', max: 2000, rule: 'Cuisses au moins parallèles au sol, talons au sol, sans pause.',
       ranks: [[0, 'E'], [20, 'D'], [40, 'C'], [60, 'B'], [80, 'A'], [100, 'S'], [150, 'S+']] },
-    squatsKg:{ name: 'Squat (charge max)', icon: '🏋️', unit: 'kg', max: 400, rule: 'Une répétition propre, cuisses parallèles. Avec pareur.',
+    squatsKg:{ name: 'Squat (charge max)', icon: '', unit: 'kg', max: 400, rule: 'Une répétition propre, cuisses parallèles. Avec pareur.',
       ranks: [[0, 'E'], [40, 'D'], [60, 'C'], [80, 'B'], [100, 'A'], [140, 'S'], [180, 'S+']] },
-    plank:   { name: 'Gainage', icon: '🧱', unit: 's', max: 7200, input: 'time', rule: 'Planche sur avant-bras, corps aligné. Le test s\'arrête dès que les hanches tombent.',
+    plank:   { name: 'Gainage', icon: '', unit: 's', max: 7200, input: 'time', rule: 'Planche sur avant-bras, corps aligné. Le test s\'arrête dès que les hanches tombent.',
       ranks: [[0, 'E'], [30, 'D'], [60, 'C'], [120, 'B'], [300, 'A'], [600, 'S'], [900, 'S+']] },
   },
 
   /* Séances & régularité */
   workoutTypes: {
-    strength: { label: 'Musculation', icon: '🏋️' },
-    bodyweight: { label: 'Poids du corps', icon: '🤸' },
-    cardio: { label: 'Cardio / HIIT', icon: '❤️' },
-    teamsport: { label: 'Sport collectif / combat', icon: '⚽' },
-    mobility: { label: 'Mobilité / yoga', icon: '🧘' },
-    other: { label: 'Autre', icon: '✨' },
+    strength: { label: 'Musculation', icon: '' },
+    bodyweight: { label: 'Poids du corps', icon: '' },
+    cardio: { label: 'Cardio / HIIT', icon: '' },
+    teamsport: { label: 'Sport collectif / combat', icon: '' },
+    mobility: { label: 'Mobilité / yoga', icon: '' },
+    other: { label: 'Autre', icon: '' },
   },
   runTypes: { easy: 'Footing', interval: 'Fractionné', long: 'Sortie longue', race: 'Course officielle', trail: 'Trail' },
 

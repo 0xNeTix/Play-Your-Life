@@ -31,7 +31,7 @@ Views.journal = {
               ${!step.manual && !step.done && step.target > 1 ? `<div class="xpbar sm"><span style="width:${(step.cur / step.target) * 100}%"></span></div>` : ''}
             </div>
           </li>`).join('')}</ol>
-        <div class="arc-foot">${xp} <span class="badge">🏷️ ${U.esc(arc.reward.title)}</span>
+        <div class="arc-foot">${xp} <span class="badge">${U.esc(arc.reward.title)}</span>
           ${mode === 'ready' ? `<button class="btn primary sm" data-act="arcTalk" data-id="${arc.id}">Retourner voir ${U.esc(npc.name)}</button>` : ''}
           ${mode === 'active' ? `<button class="btn ghost sm" data-act="arcAbandon" data-id="${arc.id}">Abandonner</button>` : ''}
           ${mode === 'done' ? `<span class="muted small">le ${U.fmtDate(st.doneTs)}</span>` : ''}
@@ -42,12 +42,12 @@ Views.journal = {
 
     return `
       <header class="page-head">
-        <p class="eyebrow">📜 Journal de quêtes</p>
+        <p class="eyebrow">Journal de quêtes</p>
         <h1>Les gens du royaume comptent sur toi.</h1>
         <p class="muted">Des PNJ te croisent au hasard, une à deux fois par jour, quand tu ouvres l'application ou après une action. Leurs quêtes s'étalent sur plusieurs niveaux et plusieurs domaines. Tu peux mener ${NPC_RULES.maxActive} quêtes à la fois.</p>
       </header>
 
-      ${ready.length ? `<section class="stack"><h2 class="section-title">✨ À rendre</h2>${ready.map(a => arcCard(a, 'ready')).join('')}</section>` : ''}
+      ${ready.length ? `<section class="stack"><h2 class="section-title">À rendre</h2>${ready.map(a => arcCard(a, 'ready')).join('')}</section>` : ''}
 
       <section class="stack">
         <h2 class="section-title">En cours <span class="muted small">${active.length}/${NPC_RULES.maxActive}</span></h2>

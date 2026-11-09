@@ -10,7 +10,7 @@ Views.intel = {
 
     return `
       <header class="page-head">
-        <p class="eyebrow">🧠 Esprit · Niv. ${info.level} · ${U.esc(Engine.title('intel', info.level))}</p>
+        <p class="eyebrow">Esprit · Niv. ${info.level} · ${U.esc(Engine.title('intel', info.level))}</p>
         <h1>Ce que tu apprends te change.</h1>
         ${UI.xpBar(info, 'intel')}
         <p class="muted small">${U.fmtNum(info.into)} / ${U.fmtNum(info.need)} XP avant le niveau ${info.level + 1}</p>
@@ -24,7 +24,7 @@ Views.intel = {
 
       <section class="cols">
         <div class="card">
-          <div class="card-head"><h2>⏱️ Session d'apprentissage</h2></div>
+          <div class="card-head"><h2>Session d'apprentissage</h2></div>
           <form data-form="session" class="stack-form">
             <label>Type<select name="kind">${Object.entries(GAME.sessionTypes).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
             <label>Sujet<input name="topic" required maxlength="100" placeholder="Ex. Chapitre 4 de Clean Code"></label>
@@ -33,7 +33,7 @@ Views.intel = {
           </form>
         </div>
         <div class="card">
-          <div class="card-head"><h2>📚 J'ai terminé un livre</h2></div>
+          <div class="card-head"><h2>J'ai terminé un livre</h2></div>
           <form data-form="book" class="stack-form">
             <div class="row"><label>Titre<input name="title" required maxlength="120"></label><label>Auteur<input name="author" maxlength="80"></label></div>
             <p class="muted small">Un livre ne compte que si tu peux en tirer 3 enseignements avec tes propres mots.</p>
@@ -45,18 +45,18 @@ Views.intel = {
 
       <section class="cols">
         <div class="card">
-          <div class="card-head"><h2>🏛️ Bibliothèque</h2></div>
+          <div class="card-head"><h2>Bibliothèque</h2></div>
           ${books.length ? `<ul class="books">${books.map(b => `<li><details><summary><strong>${U.esc(b.title)}</strong>${b.author ? ` <span class="muted">— ${U.esc(b.author)}</span>` : ''} <small class="muted">${U.fmtShort(b.ts)}</small></summary><ol>${b.takeaways.map(t => `<li>${U.esc(t)}</li>`).join('')}</ol></details></li>`).join('')}</ul>`
             : '<p class="empty-hint">Ta bibliothèque est vide. 10 pages par jour, c\'est environ 15 livres par an.</p>'}
         </div>
         <div class="card">
-          <div class="card-head"><h2>🗓️ Sessions récentes</h2></div>
+          <div class="card-head"><h2>Sessions récentes</h2></div>
           ${sessions.length ? `<ul class="log">${sessions.slice(0, 12).map(x => `<li><span>${U.esc(GAME.sessionTypes[x.kind])}</span><strong>${U.esc(x.topic)}</strong><small>${U.fmtDate(x.ts)} · ${x.minutes} min</small></li>`).join('')}</ul>` : '<p class="empty-hint">Aucune session.</p>'}
         </div>
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>🎯 Missions Esprit</h2></div>
+        <div class="card-head"><h2>Missions Esprit</h2></div>
         ${UI.missions(GAME.missions.filter(m => m.domain === 'intel'))}
       </section>`;
   },

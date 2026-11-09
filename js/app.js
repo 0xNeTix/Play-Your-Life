@@ -35,6 +35,7 @@ const App = {
     this.loadPP();
     for (const arc of ARCS) if (this.state.npc.arcs[arc.id]?.status === 'ready') this.modalQueue.push(() => this.showNpc(arc, 'complete'));
     this.checkArcs();
+    this.checkCosmetics();
     setTimeout(() => { this.flushModals(); this.maybeEncounter('open'); }, 1200);
   },
 
@@ -91,6 +92,7 @@ const App = {
 
   commit() {
     this.checkArcs();
+    this.checkCosmetics();
     this.save();
     this.render(false);
     this.flushModals();
@@ -126,22 +128,67 @@ const App = {
     setTimeout(() => this.flushModals(), 150);
   },
 
+  /* Montée de niveau : mise en scène plein écran */
   showLevelUp(lu) {
     const isChar = lu.domain === 'char';
-    const d = isChar ? { name: 'Personnage', icon: '⭐' } : GAME.domains[lu.domain];
+    const d = isChar ? { name: 'Personnage', icon: Icons.get('crown', 22) } : GAME.domains[lu.domain];
     const unlocks = Engine.unlocksBetween(this.state, lu.domain, lu.from, lu.to);
-    const icons = { title: '🏷️', mission: '🎯', reward: '🎁', feature: '🔓', cosmetic: '👕' };
+    const icons = { title: Icons.get('crown'), mission: Icons.get('target'), reward: Icons.get('rewards'), feature: Icons.get('lock') };
     const nextNeed = Engine.need(lu.to, isChar ? GAME.levelBase.char : GAME.levelBase.domain);
+    const sparks = Array.from({ length: 42 }, (_, i) => {
+      const a = (i / 42) * Math.PI * 2 + Math.random() * .3;
+      const r = 140 + Math.random() * 220;
+      return `<i style="--x:${(Math.cos(a) * r).toFixed(0)}px;--y:${(Math.sin(a) * r).toFixed(0)}px;--d:${(.25 + Math.random() * .5).toFixed(2)}s;--s:${(2 + Math.random() * 4).toFixed(1)}px"></i>`;
+    }).join('');
     this.modal(`
-      <div class="levelup ${isChar ? 'char' : 'dom-' + lu.domain}">
-        <div class="lu-burst">${d.icon}</div>
-        <p class="eyebrow">Niveau supérieur</p>
-        <h2>${U.esc(d.name)} — niveau ${lu.to}</h2>
-        <p class="muted">Titre actuel : <strong>${U.esc(Engine.title(lu.domain, lu.to))}</strong> · prochain niveau : ${U.fmtNum(nextNeed)} XP</p>
-        ${unlocks.length ? `<h3>Débloqué</h3><ul class="unlock-list">${unlocks.map(u => `<li><span>${icons[u.kind]}</span><div>${U.esc(u.text)}${u.kind === 'reward' ? '<small>Récompense réelle : va la chercher, tu l\'as gagnée.</small>' : ''}${u.xp ? `<small>+${u.xp} XP quand tu l'auras accomplie</small>` : ''}</div></li>`).join('')}</ul>`
-          : `<p class="muted">Aucun déblocage à ce niveau. <a href="#/rewards" data-act="closeModal">Définis une récompense réelle</a> pour le prochain.</p>`}
-        <button class="btn primary" data-act="closeModal">Continuer</button>
-      </div>`);
+      <div class="lu-stage ${isChar ? 'lu-char' : 'dom-' + lu.domain}">
+        <div class="lu-rays"></div>
+        <div class="lu-ring"></div><div class="lu-ring r2"></div>
+        <div class="lu-sparks">${sparks}</div>
+        <div class="lu-content">
+          <p class="lu-kicker">Niveau supérieur</p>
+          <div class="lu-domain">${d.icon}<span>${U.esc(d.name)}</span></div>
+          <div class="lu-num"><span class="lu-old">${lu.from}</span><span class="lu-new">${lu.to}</span></div>
+          <div class="lu-title">${U.esc(Engine.title(lu.domain, lu.to))}</div>
+          <div class="lu-rule"><span></span>${Icons.get('gem', 14)}<span></span></div>
+          ${unlocks.length ? `<ul class="lu-unlocks">${unlocks.map((u, i) => `<li style="--i:${i}"><span class="lu-ic">${icons[u.kind]}</span><div>${U.esc(u.text)}${u.kind === 'reward' ? '<small>Récompense réelle : va la chercher, tu l\'as gagnée.</small>' : ''}${u.xp ? `<small>+${u.xp} XP quand tu l'auras accomplie</small>` : ''}</div></li>`).join('')}</ul>`
+            : `<p class="lu-none">Prochain palier : ${U.fmtNum(nextNeed)} XP. <a href="#/rewards" data-act="closeModal">Fixe-toi une récompense réelle</a>.</p>`}
+          <button class="btn primary lu-go" data-act="closeModal">Continuer</button>
+        </div>
+      </div>`, 'lu-modal');
+    Sfx.levelUp();
+  },
+
+  /* Nouvel objet cosmétique : révélation selon la rareté */
+  showLoot(item) {
+    if (!item) return this.flushModals();
+    this.modal(`
+      <div class="loot r-${item.rarity.id}" style="--rc:${item.rarity.color}">
+        <div class="loot-glow"></div>
+        <p class="lu-kicker">Objet obtenu</p>
+        <div class="loot-item">${Avatar.preview(this.state.profile.avatar, item, 170)}</div>
+        <div class="loot-rarity">${item.rarity.label}</div>
+        <h2 class="loot-name">${U.esc(item.label)}</h2>
+        <p class="loot-src">${U.esc(item.partLabel)} · ${U.esc(Avatar.lockLabel(item.lock))}</p>
+        <div class="loot-actions">
+          <button class="btn primary" data-act="lootEquip" data-key="${U.esc(item.key)}">Équiper</button>
+          <button class="btn ghost" data-act="closeModal">Plus tard</button>
+        </div>
+      </div>`, 'loot-modal');
+    Sfx.loot(item.rarity.id);
+  },
+
+  /* Annonce les cosmétiques nouvellement débloqués (la première fois, tout est marqué comme vu) */
+  checkCosmetics() {
+    const s = this.state;
+    if (!s.profile) return;
+    const keys = Avatar.unlockedKeys(s);
+    if (!s.cosmetics || !Array.isArray(s.cosmetics.seen)) { s.cosmetics = { seen: keys }; return; }
+    const fresh = keys.filter(k => !s.cosmetics.seen.includes(k));
+    if (!fresh.length) return;
+    s.cosmetics.seen.push(...fresh);
+    const all = Avatar.lockedItems();
+    for (const k of fresh) this.modalQueue.push(() => this.showLoot(all.find(i => i.key === k)));
   },
 
   /* Règle des 5 minutes : on commence, c'est tout */
@@ -161,7 +208,7 @@ const App = {
       left--;
       const el = document.getElementById('timer-clock');
       if (!el) return clearInterval(this._timer);
-      el.textContent = left > 0 ? fmt(left) : 'Lancé 🔥';
+      el.textContent = left > 0 ? fmt(left) : "C'est parti";
       if (left <= 0) { clearInterval(this._timer); el.classList.add('done'); }
     }, 1000);
   },
@@ -206,7 +253,7 @@ const App = {
           <p class="eyebrow">${mode === 'offer' ? 'Quête proposée' : 'Quête accomplie'}</p>
           <h3>${U.esc(arc.title)}</h3>
           ${mode === 'offer' ? `<ol class="npc-steps">${arc.steps.map(st => `<li>${U.esc(st.text)}</li>`).join('')}</ol>` : ''}
-          <div class="npc-reward">${xp} <span class="badge">🏷️ Titre « ${U.esc(arc.reward.title)} »</span></div>
+          <div class="npc-reward">${xp} <span class="badge">Titre « ${U.esc(arc.reward.title)} »</span>${Avatar.arcRewards(arc.id).map(i => `<span class="badge rar" style="--rc:${i.rarity.color}">${Icons.get('gem', 13)} ${U.esc(i.label)} · ${i.rarity.label}</span>`).join('')}</div>
           <div class="npc-actions">
             ${mode === 'offer'
               ? `<button class="btn primary" data-act="npcAccept" data-id="${arc.id}">Accepter la quête</button><button class="btn ghost" data-act="npcDecline" data-id="${arc.id}">Pas maintenant</button>`
@@ -236,7 +283,7 @@ const App = {
       const p = Engine.arcProgress(s, arc);
       if (p.count > (st.stepsDone || 0)) {
         for (const step of p.steps.filter(x => x.done).slice(st.stepsDone || 0)) {
-          this.toast(`<b>${NPCS[arc.npc].icon} Étape accomplie</b><small>${U.esc(arc.title)} : ${U.esc(step.text)}</small>`);
+          this.toast(`<span class="toast-face">${UI.npcFace(arc.npc, 34)}</span><b>Étape accomplie</b><small>${U.esc(arc.title)} : ${U.esc(step.text)}</small>`);
         }
       }
       st.stepsDone = p.count;
@@ -316,15 +363,15 @@ const App = {
     const aura = cl.level >= 20 ? 'aura-5' : cl.level >= 15 ? 'aura-4' : cl.level >= 10 ? 'aura-3' : cl.level >= 6 ? 'aura-2' : cl.level >= 3 ? 'aura-1' : 'aura-0';
     const activeN = Engine.activeArcs(s).length + ARCS.filter(a => s.npc.arcs[a.id]?.status === 'ready').length;
     const nav = [
-      ['home', '🏠', 'QG'], ['sport', '💪', 'Corps'], ['pro', '💼', 'Métier'], ['intel', '🧠', 'Esprit'],
-      ['journal', '📜', 'Quêtes', activeN], ['stats', '📊', 'Stats'], ['guild', '🛡️', 'Guilde'],
-      ['rewards', '🎁', 'Récompenses'], ['settings', '⚙️', 'Réglages'],
+      ['home', 'home', 'QG'], ['sport', 'sport', 'Corps'], ['pro', 'pro', 'Métier'], ['intel', 'intel', 'Esprit'],
+      ['journal', 'quests', 'Quêtes', activeN], ['stats', 'stats', 'Stats'], ['guild', 'guild', 'Guilde'],
+      ['rewards', 'rewards', 'Trésor'], ['settings', 'settings', 'Réglages'],
     ];
     const active = this.route === 'quiz' ? 'pro' : this.route;
     side.innerHTML = `
-      <div class="brand"><span class="brand-mark">⚔️</span><span>Play Your Life</span></div>
+      <div class="brand"><span class="brand-mark">${Icons.get('sword', 18)}</span><span>Play Your Life</span></div>
       <a class="hero-card" href="#/avatar" title="Personnaliser mon avatar">
-        <div class="avatar ${aura}">${UI.portrait(s, 52)}</div>
+        <div class="avatar ${aura} framed frame-${s.profile.avatar?.frame || 'none'}">${UI.portrait(s, 52)}</div>
         <div class="hero-meta">
           <div class="hero-name">${U.esc(s.profile.name)}</div>
           <div class="hero-title">${U.esc(Engine.title('char', cl.level))} · Niv. ${cl.level}</div>
@@ -332,7 +379,7 @@ const App = {
           <div class="hero-xp">${U.fmtNum(cl.into)} / ${U.fmtNum(cl.need)} XP</div>
         </div>
       </a>
-      <nav class="nav">${nav.map(([r, i, l, n]) => `<a href="#/${r}" class="${active === r ? 'active' : ''}"><span class="ni">${i}</span><span class="nl">${l}</span>${n ? `<span class="nav-count">${n}</span>` : ''}</a>`).join('')}</nav>
+      <nav class="nav">${nav.map(([r, i, l, n]) => `<a href="#/${r}" class="${active === r ? 'active' : ''}"><span class="ni">${Icons.get(i, 20)}</span><span class="nl">${l}</span>${n ? `<span class="nav-count">${n}</span>` : ''}</a>`).join('')}</nav>
       <p class="side-oath">« Rien ici n'a de valeur si ce n'est pas vrai dans ta vie. »</p>`;
   },
 };
@@ -359,19 +406,28 @@ const UI = {
   },
   playerCard(card, { photoUrl = null } = {}) {
     const tier = this.cardTier(card.level);
+    const frame = card.avatar?.frame || 'none';
     const pic = photoUrl
-      ? `<img src="${photoUrl}" alt="" width="96" height="96">`
-      : Avatar.svg(card.avatar, { size: 96, label: card.name });
+      ? `<img src="${photoUrl}" alt="" width="112" height="112">`
+      : Avatar.svg(card.avatar, { size: 112, label: card.name, shape: 'circle' });
+    let h = 0;
+    for (const ch of String(card.id || card.name || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const serial = String(h % 100000).padStart(5, '0');
+    const since = card.since ? new Date(card.since).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : '';
     return `<article class="pcard tier-${tier.id}">
-      <div class="pc-band">
-        <div class="pc-pic">${pic}</div>
-        <div class="pc-id"><div class="pc-name">${U.esc(card.name)}</div><div class="pc-title">${U.esc(card.title || '')}</div><div class="pc-tier">Carte ${tier.name}</div></div>
-        <div class="pc-lvl"><small>NIV</small>${card.level}</div>
+      <div class="pc-inner">
+        <div class="pc-sheen"></div>
+        <header class="pc-head"><span>Play Your Life</span><span class="pc-tier">${tier.name}</span></header>
+        <div class="pc-portrait"><span class="pc-ring framed frame-${frame}">${pic}</span><span class="pc-lvl"><small>Niv.</small>${card.level}</span></div>
+        <div class="pc-name">${U.esc(card.name)}</div>
+        <div class="pc-title">${U.esc(card.title || '')}</div>
+        <div class="pc-rule"><span></span><i></i><span></span></div>
+        <div class="pc-stats">${GAME.domainOrder.map(d => `<div class="pc-stat dom-${d}"><b>${card.domains?.[d] ?? 1}</b><small>${GAME.domains[d].name}</small></div>`).join('')}</div>
+        <footer class="pc-foot">
+          <span>Série ${card.streak ?? 0} j</span><span>${card.runKm ?? 0} km</span><span>${card.npcTitles?.length || 0} titre${(card.npcTitles?.length || 0) > 1 ? 's' : ''}</span>
+        </footer>
+        <div class="pc-serial"><span>N° ${serial}</span>${since ? `<span>Depuis ${since}</span>` : ''}</div>
       </div>
-      <div class="pc-body">
-        ${GAME.domainOrder.map(d => `<div class="pc-dom dom-${d}"><span>${GAME.domains[d].icon} ${GAME.domains[d].name}</span><b>${card.domains?.[d] ?? 1}</b></div>`).join('')}
-      </div>
-      <div class="pc-foot"><span>🔥 ${card.streak ?? 0} j</span><span>🏋️ ${card.weekStreak ?? 0} sem.</span><span>🏃 ${card.runKm ?? 0} km</span>${card.npcTitles?.length ? `<span>📜 ${card.npcTitles.length}</span>` : ''}</div>
     </article>`;
   },
   xpBar(info, domain) {
@@ -382,8 +438,8 @@ const UI = {
     return `<span class="badge dom-${d}">${x.icon} ${U.esc(x.name)}</span>`;
   },
   domainOptions(selected, withChar = false) {
-    const opts = GAME.domainOrder.map(d => `<option value="${d}" ${d === selected ? 'selected' : ''}>${GAME.domains[d].icon} ${GAME.domains[d].name}</option>`);
-    if (withChar) opts.push(`<option value="char" ${selected === 'char' ? 'selected' : ''}>⭐ Personnage (niveau global)</option>`);
+    const opts = GAME.domainOrder.map(d => `<option value="${d}" ${d === selected ? 'selected' : ''}>${GAME.domains[d].name}</option>`);
+    if (withChar) opts.push(`<option value="char" ${selected === 'char' ? 'selected' : ''}>Personnage (niveau global)</option>`);
     return opts.join('');
   },
   pageHead(domain, h1) {
@@ -407,12 +463,12 @@ const UI = {
     const row = m => {
       if (s.missions[m.id]) {
         const r = s.missions[m.id];
-        return `<li class="mission done"><span class="m-ico">✅</span><div><div>${U.esc(m.text)}</div><small>${U.fmtDate(r.ts)} · « ${U.esc(r.note)} »</small></div><span class="m-xp">+${m.xp}</span></li>`;
+        return `<li class="mission done"><span class="m-ico ok">${Icons.get('check', 18)}</span><div><div>${U.esc(m.text)}</div><small>${U.fmtDate(r.ts)} · « ${U.esc(r.note)} »</small></div><span class="m-xp">+${m.xp}</span></li>`;
       }
       if (!Engine.missionUnlocked(s, m)) {
-        return `<li class="mission locked"><span class="m-ico">🔒</span><div><div>${U.esc(m.text)}</div><small>Débloquée à : ${U.esc(Engine.missionLockLabel(m))}</small></div><span class="m-xp">+${m.xp}</span></li>`;
+        return `<li class="mission locked"><span class="m-ico">${Icons.get('lock', 18)}</span><div><div>${U.esc(m.text)}</div><small>Débloquée à : ${U.esc(Engine.missionLockLabel(m))}</small></div><span class="m-xp">+${m.xp}</span></li>`;
       }
-      return `<li class="mission open"><span class="m-ico">🎯</span><div class="m-main"><div>${U.esc(m.text)}</div>
+      return `<li class="mission open"><span class="m-ico">${Icons.get('target', 18)}</span><div class="m-main"><div>${U.esc(m.text)}</div>
         <details><summary>Je l'ai fait</summary>
           <form data-form="mission" data-id="${m.id}" class="inline-form">
             <input name="note" required minlength="10" maxlength="240" placeholder="Preuve : qu'as-tu fait concrètement ? (10 caractères min.)">
@@ -439,6 +495,17 @@ App.forms.mission = (fd, form) => {
   App.grant(m.domain, m.xp, `Mission : ${m.text}`);
   App.commit();
 };
+App.actions.lootEquip = el => {
+  const [part, id] = el.dataset.key.split(':');
+  const av = { ...Avatar.sanitize(App.state, App.state.profile.avatar) };
+  if (part === 'extras') av.extras = [...new Set([...(av.extras || []), id])];
+  else av[part] = id;
+  App.state.profile.avatar = Avatar.sanitize(App.state, av);
+  App.closeModal();
+  App.toast('<b>Équipé.</b>');
+  App.save();
+  App.render(false);
+};
 App.actions.timer = el => App.startTimer(el.dataset.text || 'Passe à l\'action');
 
 /* ---------- Actions PNJ ---------- */
@@ -447,7 +514,7 @@ App.actions.npcAccept = el => {
   s.npc.arcs[el.dataset.id] = { status: 'active', acceptedTs: Date.now(), stepsDone: 0, manual: {} };
   const arc = ARCS.find(a => a.id === el.dataset.id);
   App.closeModal();
-  App.toast(`<b>📜 Quête acceptée</b><small>${U.esc(arc.title)} — suis-la dans l'onglet Quêtes.</small>`);
+  App.toast(`<b>Quête acceptée</b><small>${U.esc(arc.title)} — suis-la dans l'onglet Quêtes.</small>`);
   App.commit();
 };
 App.actions.npcDecline = el => {
@@ -466,6 +533,6 @@ App.actions.npcClaim = el => {
   s.npc.titles.push({ title: arc.reward.title, npc: arc.npc, arc: arc.id, ts: Date.now() });
   App.closeModal();
   for (const [d, v] of Object.entries(arc.reward.xp)) App.grant(d, v, `Quête « ${arc.title} » (${NPCS[arc.npc].name})`);
-  App.toast(`<b>🏷️ Nouveau titre</b><small>${U.esc(arc.reward.title)}</small>`);
+  App.toast(`<b>Nouveau titre</b><small>${U.esc(arc.reward.title)}</small>`);
   App.commit();
 };

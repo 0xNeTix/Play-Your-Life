@@ -11,7 +11,7 @@ Views.stats = {
 
     return `
       <header class="page-head">
-        <p class="eyebrow">📊 Fiche de personnage</p>
+        <p class="eyebrow">Fiche de personnage</p>
         <h1>${U.esc(s.profile.name)}, niveau ${cl.level}</h1>
         <p class="muted">${s.profile.height ? `${s.profile.height} cm · ${s.profile.weight} kg · ` : ''}${U.esc(Engine.title('char', cl.level))} · ${U.fmtNum(Engine.totalXP(s))} XP au total · aventure commencée il y a ${days} jour${days > 1 ? 's' : ''}</p>
       </header>
@@ -45,8 +45,8 @@ Views.stats = {
       </section>
 
       <section class="cols">
-        <div class="card"><div class="card-head"><h3>📸 Score physique</h3><span class="muted small">/100</span></div><div id="ch-score"></div></div>
-        <div class="card"><div class="card-head"><h3>⚖️ Poids</h3><span class="muted small">kg</span></div><div id="ch-weight"></div></div>
+        <div class="card"><div class="card-head"><h3>Score physique</h3><span class="muted small">/100</span></div><div id="ch-score"></div></div>
+        <div class="card"><div class="card-head"><h3>Poids</h3><span class="muted small">kg</span></div><div id="ch-weight"></div></div>
       </section>
 
       <section class="card">
@@ -56,7 +56,7 @@ Views.stats = {
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>📜 Journal d'XP</h2><span class="muted small">40 derniers gains</span></div>
+        <div class="card-head"><h2>Journal d'XP</h2><span class="muted small">40 derniers gains</span></div>
         ${recent.length ? `<ul class="xp-log">${recent.map(e => `<li><span class="xl-d dom-${e.domain}">${GAME.domains[e.domain].icon}</span><span class="xl-r">${U.esc(e.reason)}</span><span class="xl-t">${U.fmtShort(e.ts)}</span><strong>+${e.amount}</strong></li>`).join('')}</ul>` : '<p class="empty-hint">Aucun XP pour le moment.</p>'}
       </section>`;
   },

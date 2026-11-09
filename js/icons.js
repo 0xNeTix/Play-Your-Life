@@ -1,0 +1,34 @@
+/* Icônes au trait (24×24), couleur héritée du texte. Icons.get(nom, taille) */
+const Icons = (() => {
+  const P = {
+    home: 'M3 21h18M5 21V9h2V6h2v3h2V5h2v4h2V6h2v3h2v12M10 21v-4a2 2 0 0 1 4 0v4',
+    sport: 'M6.5 7v10M3.5 9.5v5M17.5 7v10M20.5 9.5v5M6.5 12h11',
+    pro: 'M14.5 3.5l6 6-2.5 2.5-6-6zM12 6L3.5 14.5a2.1 2.1 0 0 0 3 3L15 9M9 21h10',
+    intel: 'M3 5.5h6a3 3 0 0 1 3 3V20a2 2 0 0 0-2-2H3zM21 5.5h-6a3 3 0 0 0-3 3V20a2 2 0 0 1 2-2h7z',
+    discipline: 'M12 3c.5 3 5 5.5 5 10.5a5 5 0 0 1-10 0c0-2.6 1.6-4 2.2-6 .9 1.1 1.4 2.3 1.6 3.4C12 9 12.3 6 12 3z',
+    quests: 'M8 4h10a2 2 0 0 1 2 2v1.5h-4M8 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7.5M9.5 9.5h5M9.5 13h5M9.5 16.5h3',
+    stats: 'M3 20.5h18M6 20V12M11 20V5M16 20v-6M21 20V9',
+    guild: 'M12 3l8 3v6c0 4.8-3.4 8-8 9-4.6-1-8-4.2-8-9V6zM12 8v8M8.5 11.5h7',
+    rewards: 'M3.5 10.5h17V20h-17zM3.5 10.5V9a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4v1.5M10 13h4v3h-4z',
+    settings: 'M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM19.4 13.5l1.6 1.2-2 3.4-1.9-.7a7 7 0 0 1-1.7 1l-.3 2h-4l-.3-2a7 7 0 0 1-1.7-1l-1.9.7-2-3.4 1.6-1.2a7 7 0 0 1 0-3L3 9.3l2-3.4 1.9.7a7 7 0 0 1 1.7-1l.3-2h4l.3 2a7 7 0 0 1 1.7 1l1.9-.7 2 3.4-1.6 1.2a7 7 0 0 1 0 3z',
+    avatar: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 21a7.5 7.5 0 0 1 15 0',
+    flame: 'M12 3c.5 3 5 5.5 5 10.5a5 5 0 0 1-10 0c0-2.6 1.6-4 2.2-6 .9 1.1 1.4 2.3 1.6 3.4C12 9 12.3 6 12 3z',
+    timer: 'M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 9v4l2.5 2M10 2.5h4',
+    sword: 'M14.5 3.5H20.5V9.5L10 20l-3-3zM5 15l4 4M3.5 20.5l2-2',
+    crown: 'M3.5 18h17M4 16l-1-9 5 4 4-6 4 6 5-4-1 9z',
+    lock: 'M6 11h12v10H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3',
+    check: 'M4.5 12.5l5 5 10-11',
+    upload: 'M12 16V4M7 9l5-5 5 5M4 20h16',
+    link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
+    run: 'M13.5 5.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5zM9 21l2.5-6 3 2.5V21M7 11l3-3.5 4 1 2 3 3 .5M11.5 15l-1.5-4',
+    camera: 'M4 8h3l1.5-2.5h7L17 8h3v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z',
+    target: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01',
+    gem: 'M6 3.5h12l3 5.5-9 11.5L3 9zM3 9h18M9 3.5L12 9l3-5.5M12 9v11.5',
+  };
+  function get(name, size = 18, cls = '') {
+    const d = P[name];
+    if (!d) return '';
+    return `<svg class="ic ${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+  }
+  return { get };
+})();

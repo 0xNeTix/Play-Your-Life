@@ -9,7 +9,16 @@ const Avatar = (() => {
   const st = (fill, w = SW) => `fill="${fill}" stroke="${O}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
   let uid = 0;
 
-  /* ---------- Catalogue (unlock : { domain, level } pour les objets à débloquer) ---------- */
+  /* ---------- Catalogue ----------
+     Option : [id, libellé, déblocage?, rareté?]
+     Déblocage : { domain, level } · { arc } (quête de PNJ) · { xp } (XP totale) · { quests } (quêtes du jour) · { streak } (meilleure série)
+     Rareté : c commun · r rare · e épique · l légendaire */
+  const RARITY = {
+    c: { id: 'c', label: 'Commun', color: '#9aa3ad' },
+    r: { id: 'r', label: 'Rare', color: '#0bc5d2' },
+    e: { id: 'e', label: 'Épique', color: '#a77be0' },
+    l: { id: 'l', label: 'Légendaire', color: '#ffbe69' },
+  };
   const colors = {
     skin: ['#fde3c8', '#f6c9a0', '#eab48a', '#d39a6a', '#b57a4e', '#8d5a36', '#6a4128', '#4a2c1c'],
     hair: ['#2b2220', '#4a2e1c', '#7a4a26', '#a2462a', '#e2b45a', '#ece0c4', '#9a9a9a', '#f2f2f2', '#3a6fd8', '#e86aa6', '#2fa36b', '#7b4fc9'],
@@ -17,10 +26,15 @@ const Avatar = (() => {
     cloth: ['#450c07', '#d4704c', '#ffbe69', '#0bc5d2', '#003440', '#16213e', '#2f8a5a', '#7b4fc9', '#e86aa6', '#f2f2f2', '#3a3a3a', '#9aa3ad'],
     bg: [
       { c: '#16213e' }, { c: '#003440' }, { c: '#450c07' }, { c: '#d4704c' }, { c: '#0bc5d2' }, { c: '#3b2a63' }, { c: '#1f5c3a' }, { c: '#ffbe69' },
-      { c: '#b8862f', unlock: { domain: 'char', level: 5 }, label: 'Or' },
-      { c: '#e86aa6', unlock: { domain: 'discipline', level: 4 }, label: 'Aurore' },
+      { c: '#b8862f', unlock: { domain: 'char', level: 5 }, label: 'Or terni', r: 'r' },
+      { c: '#e86aa6', unlock: { domain: 'discipline', level: 4 }, label: 'Aube rose', r: 'r' },
+      { c: 'aurora', unlock: { arc: 'lyra-2' }, label: 'Aurore boréale', r: 'e' },
+      { c: 'ember', unlock: { arc: 'kael-2' }, label: 'Braises de la forge', r: 'e' },
+      { c: 'royal', unlock: { xp: 25000 }, label: 'Salle du trône', r: 'l' },
+      { c: 'starfield', unlock: { arc: 'voyageur-2' }, label: 'Voûte étoilée', r: 'l' },
     ],
   };
+  const SPECIAL_BG = ['aurora', 'ember', 'royal', 'starfield'];
 
   const parts = {
     face: { label: 'Visage', options: [['round', 'Rond'], ['oval', 'Ovale'], ['square', 'Carré'], ['chubby', 'Joues rondes']] },
@@ -28,18 +42,28 @@ const Avatar = (() => {
     eyes: { label: 'Yeux', options: [['normal', 'Normaux'], ['big', 'Grands'], ['happy', 'Rieurs'], ['sleepy', 'Calmes'], ['determined', 'Déterminés'], ['wink', 'Clin d\'œil']] },
     brows: { label: 'Sourcils', options: [['normal', 'Normaux'], ['raised', 'Levés'], ['angry', 'Froncés'], ['worried', 'Inquiets'], ['thick', 'Épais']] },
     mouth: { label: 'Bouche', options: [['smile', 'Sourire'], ['grin', 'Dents'], ['laugh', 'Rire'], ['open', 'Surpris'], ['smirk', 'En coin'], ['neutral', 'Neutre']] },
-    beard: { label: 'Pilosité', options: [['none', 'Aucune'], ['stubble', 'Barbe de 3 jours'], ['mustache', 'Moustache'], ['goatee', 'Bouc'], ['short', 'Barbe courte'], ['full', 'Barbe + moustache'], ['long', 'Barbe longue'], ['viking', 'Viking', { domain: 'sport', level: 4 }]] },
-    glasses: { label: 'Lunettes', options: [['none', 'Aucune'], ['square', 'Carrées'], ['round', 'Rondes'], ['shades', 'Solaires', { domain: 'discipline', level: 3 }]] },
-    headwear: { label: 'Couvre-chef', options: [['none', 'Aucun'], ['cap', 'Casquette'], ['beanie', 'Bonnet'], ['headband', 'Bandeau', { domain: 'sport', level: 2 }], ['goggles', 'Lunettes d\'ingénieur', { domain: 'pro', level: 3 }], ['hood', 'Capuche', { domain: 'discipline', level: 3 }], ['hat', 'Chapeau de voyageur', { domain: 'intel', level: 4 }], ['helmet', 'Casque de la Garde', { domain: 'sport', level: 6 }], ['crown', 'Couronne', { domain: 'char', level: 8 }]] },
-    outfit: { label: 'Tenue', options: [['tshirt', 'T-shirt'], ['hoodie', 'Sweat à capuche'], ['varsity', 'Teddy'], ['scholar', 'Pull à col', { domain: 'intel', level: 2 }], ['suit', 'Costume', { domain: 'pro', level: 4 }], ['apron', 'Tablier de forge', { domain: 'sport', level: 3 }], ['robe', 'Robe du temple', { domain: 'discipline', level: 5 }], ['armor', 'Armure', { domain: 'sport', level: 7 }]] },
+    beard: { label: 'Pilosité', options: [['none', 'Aucune'], ['stubble', 'Barbe de 3 jours'], ['mustache', 'Moustache'], ['goatee', 'Bouc'], ['short', 'Barbe courte'], ['full', 'Barbe + moustache'], ['long', 'Barbe longue'], ['viking', 'Barbe viking', { domain: 'sport', level: 4 }, 'r']] },
+    glasses: { label: 'Lunettes', options: [['none', 'Aucune'], ['square', 'Carrées'], ['round', 'Rondes'], ['shades', 'Solaires', { streak: 7 }, 'r'], ['monocle', 'Monocle d\'Orin', { arc: 'orin-1' }, 'r'], ['visor', 'Visière d\'architecte', { arc: 'orin-2' }, 'e']] },
+    headwear: { label: 'Couvre-chef', options: [['none', 'Aucun'], ['cap', 'Casquette'], ['beanie', 'Bonnet'],
+      ['headband', 'Bandeau', { domain: 'sport', level: 2 }, 'r'], ['bandana', 'Bandana', { xp: 1000 }, 'r'], ['goggles', 'Lunettes d\'ingénieur', { domain: 'pro', level: 3 }, 'r'],
+      ['hood', 'Capuche de l\'Aube', { arc: 'mira-1' }, 'r'], ['hat', 'Chapeau de voyageur', { domain: 'intel', level: 4 }, 'r'], ['wizard', 'Chapeau d\'érudit', { arc: 'lyra-1' }, 'e'],
+      ['helmet', 'Casque de la Garde', { domain: 'sport', level: 6 }, 'e'], ['horned', 'Casque à cornes', { arc: 'brann-1' }, 'e'],
+      ['crown', 'Couronne', { domain: 'char', level: 8 }, 'l'], ['laurel', 'Couronne de laurier', { xp: 20000 }, 'l'], ['halo', 'Auréole', { arc: 'voyageur-2' }, 'l']] },
+    outfit: { label: 'Tenue', options: [['tshirt', 'T-shirt'], ['hoodie', 'Sweat à capuche'], ['varsity', 'Teddy'],
+      ['scholar', 'Pull à col', { domain: 'intel', level: 2 }, 'r'], ['leather', 'Blouson de cuir', { xp: 2500 }, 'r'], ['gi', 'Kimono d\'entraînement', { quests: 30 }, 'r'],
+      ['suit', 'Costume', { domain: 'pro', level: 4 }, 'r'], ['apron', 'Tablier de forge', { arc: 'kael-1' }, 'r'],
+      ['robe', 'Robe du temple', { arc: 'mira-2' }, 'e'], ['armor', 'Armure', { arc: 'brann-2' }, 'e'], ['cape', 'Cape royale', { arc: 'voyageur-1' }, 'l']] },
+    frame: { label: 'Cadre', options: [['none', 'Aucun'], ['iron', 'Fer'], ['bronze', 'Bronze', { xp: 1500 }, 'r'], ['silver', 'Argent', { xp: 6000 }, 'r'],
+      ['runic', 'Runique', { arc: 'voyageur-1' }, 'e'], ['gold', 'Or', { xp: 15000 }, 'e'], ['legend', 'Légende', { xp: 40000 }, 'l']] },
     pose: { label: 'Geste', options: [['none', 'Aucun'], ['hands', 'Mains levées']] },
   };
-  const extras = [['blush', 'Joues roses'], ['freckles', 'Taches de rousseur'], ['sweat', 'Goutte de sueur'], ['bandage', 'Pansement'], ['scar', 'Cicatrice', { domain: 'sport', level: 5 }]];
+  const extras = [['blush', 'Joues roses'], ['freckles', 'Taches de rousseur'], ['sweat', 'Goutte de sueur'], ['bandage', 'Pansement'],
+    ['earring', 'Boucle d\'oreille', { xp: 4000 }, 'r'], ['scar', 'Cicatrice', { domain: 'sport', level: 5 }, 'r'], ['warpaint', 'Peinture de guerre', { arc: 'kael-2' }, 'e']];
 
   const defaults = () => ({
     face: 'round', skin: colors.skin[1], hair: 'short', hairColor: colors.hair[2], eyes: 'normal', eyeColor: colors.eye[0],
     brows: 'normal', mouth: 'smile', beard: 'none', glasses: 'none', headwear: 'none', headwearColor: colors.cloth[1],
-    outfit: 'tshirt', outfitColor: colors.cloth[3], bg: colors.bg[0].c, pose: 'none', extras: ['blush'],
+    outfit: 'tshirt', outfitColor: colors.cloth[3], bg: colors.bg[0].c, pose: 'none', frame: 'none', extras: ['blush'],
   });
 
   function random() {
@@ -132,6 +156,8 @@ const Avatar = (() => {
     switch (style) {
       case 'square': return `${temples}<rect x="67" y="84" width="29" height="23" rx="5" fill="#fff" fill-opacity=".18" stroke="${O}" stroke-width="4.5"/><rect x="104" y="84" width="29" height="23" rx="5" fill="#fff" fill-opacity=".18" stroke="${O}" stroke-width="4.5"/><path d="M96 93 Q100 90 104 93" fill="none" stroke="${O}" stroke-width="4"/>`;
       case 'round': return `${temples}<circle cx="82" cy="96" r="13" fill="#fff" fill-opacity=".18" stroke="${O}" stroke-width="3.5"/><circle cx="118" cy="96" r="13" fill="#fff" fill-opacity=".18" stroke="${O}" stroke-width="3.5"/><path d="M95 94 Q100 90 105 94" fill="none" stroke="${O}" stroke-width="3.5"/>`;
+      case 'monocle': return `<path d="M130 104 Q144 128 134 152" fill="none" stroke="#ffbe69" stroke-width="2"/><circle cx="118" cy="96" r="13" fill="#fff" fill-opacity=".2" stroke="${O}" stroke-width="5.5"/><circle cx="118" cy="96" r="13" fill="none" stroke="#ffbe69" stroke-width="2.5"/>`;
+      case 'visor': return `<path d="M58 85 H142 Q144 104 133 109 H67 Q56 104 58 85 Z" fill="#0bc5d2" fill-opacity=".8" stroke="${O}" stroke-width="3.5" stroke-linejoin="round"/><path d="M66 91 H112" stroke="#fff" stroke-width="3" opacity=".6" stroke-linecap="round"/><path d="M58 92 L50 90 M142 92 L150 90" stroke="${O}" stroke-width="4" stroke-linecap="round"/>`;
       case 'shades': return `${temples}<path d="M66 88 H96 V98 Q95 110 82 110 Q67 110 66 98 Z M104 88 H134 V98 Q133 110 118 110 Q105 110 104 98 Z" ${st('#1b1b2f', 3)}/><path d="M96 91 H104" stroke="${O}" stroke-width="4"/><path d="M72 92 L78 92 M110 92 L116 92" stroke="#fff" stroke-width="2.5" opacity=".6" stroke-linecap="round"/>`;
       default: return '';
     }
@@ -184,6 +210,20 @@ const Avatar = (() => {
       case 'hood': return `<path d="M50 118 C44 52 74 32 100 32 C126 32 156 52 150 118" fill="none" stroke="${O}" stroke-width="16" stroke-linecap="round"/><path d="M50 118 C44 52 74 32 100 32 C126 32 156 52 150 118" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round"/>`;
       case 'hat': return `<ellipse cx="100" cy="60" rx="74" ry="15" ${st(color)}/><path d="M66 58 Q66 12 100 12 Q134 12 134 58 Z" ${st(color)}/><path d="M67 48 Q100 40 133 48 L134 58 Q100 50 66 58 Z" ${st('#ffbe69', 2.5)}/><path d="M26 58 Q100 78 174 58" fill="none" stroke="${O}" stroke-width="3" opacity=".5"/>`;
       case 'helmet': return `<path d="M120 26 Q138 4 162 12 Q146 18 132 34 Z" ${st('#b3261e')}/><path d="M47 98 C44 38 78 22 100 22 C122 22 156 38 153 98 L153 104 H137 V86 Q100 74 63 86 V104 H47 Z" ${st('#9aa3ad')}/><path d="M95 78 H105 V114 Q100 118 95 114 Z" ${st('#9aa3ad', 3)}/><circle cx="56" cy="92" r="2.5" fill="${O}"/><circle cx="144" cy="92" r="2.5" fill="${O}"/><path d="M66 40 Q100 28 134 40" fill="none" stroke="#fff" stroke-width="3" opacity=".5" stroke-linecap="round"/>`;
+      case 'bandana': return `<path d="M50 84 C50 42 80 30 100 30 C120 30 150 42 150 84 Q100 70 50 84 Z" ${st(color)}/><path d="M146 72 Q170 62 174 82 Q162 78 150 82 Z M147 78 Q166 92 158 108 Q153 94 145 86 Z" ${st(color, 3)}/><g fill="#fff" opacity=".7"><circle cx="76" cy="54" r="2.5"/><circle cx="96" cy="44" r="2.5"/><circle cx="118" cy="48" r="2.5"/><circle cx="134" cy="62" r="2.5"/><circle cx="64" cy="70" r="2.5"/><circle cx="106" cy="62" r="2.5"/></g>`;
+      case 'wizard': return `<ellipse cx="100" cy="60" rx="68" ry="13" ${st(color)}/><path d="M64 60 Q80 32 94 6 Q104 -6 118 6 Q108 12 108 22 Q122 42 136 60 Z" ${st(color)}/><path d="M66 52 Q100 62 134 52 L137 60 Q100 70 63 60 Z" ${st('#ffbe69', 2.5)}/><path d="M92 34 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z M114 40 l1.5 3.5 3.5 1.5 -3.5 1.5 -1.5 3.5 -1.5 -3.5 -3.5 -1.5 3.5 -1.5z" fill="#ffbe69"/>`;
+      case 'horned': return `<path d="M58 64 Q28 58 20 22 Q42 42 64 46 Z" ${st('#efe3d0')}/><path d="M142 64 Q172 58 180 22 Q158 42 136 46 Z" ${st('#efe3d0')}/><path d="M28 34 l8 4 M172 34 l-8 4" stroke="${O}" stroke-width="2" opacity=".4"/><path d="M48 96 C46 42 78 26 100 26 C122 26 154 42 152 96 L152 100 Q100 86 48 100 Z" ${st('#8b949c')}/><path d="M50 82 Q100 70 150 82" fill="none" stroke="${O}" stroke-width="3"/><path d="M95 72 H105 V112 Q100 116 95 112 Z" ${st('#8b949c', 3)}/><circle cx="64" cy="80" r="2.5" fill="${O}"/><circle cx="136" cy="80" r="2.5" fill="${O}"/><path d="M68 42 Q100 30 132 42" fill="none" stroke="#fff" stroke-width="3" opacity=".45" stroke-linecap="round"/>`;
+      case 'laurel': {
+        let l = '';
+        for (let i = 0; i < 6; i++) {
+          const a = (196 + i * 15) * Math.PI / 180, b = (344 - i * 15) * Math.PI / 180;
+          const lx = 100 + 54 * Math.cos(a), ly = 92 + 54 * Math.sin(a), rx2 = 100 + 54 * Math.cos(b), ry2 = 92 + 54 * Math.sin(b);
+          l += `<ellipse cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" rx="10" ry="4.5" transform="rotate(${(196 + i * 15 + 60).toFixed(0)} ${lx.toFixed(1)} ${ly.toFixed(1)})" ${st('#ffbe69', 2.5)}/>`;
+          l += `<ellipse cx="${rx2.toFixed(1)}" cy="${ry2.toFixed(1)}" rx="10" ry="4.5" transform="rotate(${(344 - i * 15 - 60).toFixed(0)} ${rx2.toFixed(1)} ${ry2.toFixed(1)})" ${st('#ffbe69', 2.5)}/>`;
+        }
+        return l + `<circle cx="100" cy="38" r="4" ${st('#b3261e', 2)}/>`;
+      }
+      case 'halo': return `<ellipse cx="100" cy="22" rx="36" ry="9" fill="none" stroke="#ffe3a8" stroke-width="14" opacity=".25"/><ellipse cx="100" cy="22" rx="34" ry="8" fill="none" stroke="${O}" stroke-width="8"/><ellipse cx="100" cy="22" rx="34" ry="8" fill="none" stroke="#ffd27a" stroke-width="4.5"/>`;
       case 'crown': return `<path d="M60 56 L58 22 L78 38 L100 14 L122 38 L142 22 L140 56 Z" ${st('#ffbe69')}/><circle cx="100" cy="44" r="5" ${st('#b3261e', 2.5)}/><circle cx="76" cy="47" r="3.5" ${st('#0bc5d2', 2)}/><circle cx="124" cy="47" r="3.5" ${st('#0bc5d2', 2)}/>`;
       default: return '';
     }
@@ -194,6 +234,9 @@ const Avatar = (() => {
     switch (style) {
       case 'hoodie': return torso(color) + `<path d="M66 162 Q100 140 134 162 Q100 180 66 162 Z" ${st(color)}/>`;
       case 'armor': return torso('#9aa3ad');
+      case 'cape': return `<path d="M4 206 C10 162 38 146 70 146 H130 C162 146 190 162 196 206 Z" ${st(color)}/><path d="M48 206 C50 176 70 162 100 162 C130 162 150 176 152 206 Z" ${st('#1b1b2f', 3)}/><path d="M60 206 C62 186 76 178 100 178 C124 178 138 186 140 206" fill="none" stroke="#ffbe69" stroke-width="2" opacity=".6"/>`;
+      case 'leather': return torso('#2a2420');
+      case 'gi': return torso(color);
       case 'robe': return torso(color);
       default: return torso(color);
     }
@@ -206,6 +249,9 @@ const Avatar = (() => {
       case 'scholar': return `<path d="M84 157 L100 172 L116 157" fill="none" stroke="${O}" stroke-width="3"/><path d="M84 156 L80 172 L100 168 Z M116 156 L120 172 L100 168 Z" ${st('#f2f2f2', 3)}/>`;
       case 'suit': return `<path d="M82 157 L100 198 L118 157 Z" ${st('#f2f2f2', 3)}/><path d="M96 166 H104 L107 190 L100 200 L93 190 Z" ${st('#b3261e', 3)}/><path d="M82 157 L92 186 L74 172 Z M118 157 L108 186 L126 172 Z" ${st(color, 3)}/>`;
       case 'apron': return `<path d="M83 158 Q100 172 117 158" fill="none" stroke="${O}" stroke-width="3"/><path d="M64 172 H136 L142 206 H58 Z" ${st('#6b4a32')}/><path d="M66 172 L62 156 M134 172 L138 156" stroke="${O}" stroke-width="5" stroke-linecap="round"/><rect x="88" y="182" width="24" height="14" rx="3" ${st('#5a3d29', 2.5)}/>`;
+      case 'cape': return `<path d="M62 150 L80 180 L88 158 Z M138 150 L120 180 L112 158 Z" ${st(color, 3)}/><path d="M82 172 Q100 184 118 172" fill="none" stroke="#ffbe69" stroke-width="2.5"/><circle cx="82" cy="172" r="6" ${st('#ffbe69', 3)}/><circle cx="118" cy="172" r="6" ${st('#ffbe69', 3)}/><circle cx="82" cy="172" r="2" fill="#b3261e"/><circle cx="118" cy="172" r="2" fill="#b3261e"/>`;
+      case 'leather': return `<path d="M86 157 L100 206 L114 157 Z" ${st(color, 3)}/><path d="M86 157 L72 192 L92 178 Z M114 157 L128 192 L108 178 Z" ${st('#3a322c', 3)}/><path d="M60 196 L66 206 M140 196 L134 206" stroke="#9aa3ad" stroke-width="2.5"/>`;
+      case 'gi': return `<path d="M80 156 L120 206 L136 206 L92 156 Z" fill="#000" fill-opacity=".14" stroke="${O}" stroke-width="3" stroke-linejoin="round"/><path d="M120 156 L94 198 L82 192 L108 156 Z" ${st(color, 3)}/><path d="M60 196 H140" stroke="#1b1b2f" stroke-width="7"/>`;
       case 'robe': return `<path d="M84 157 L100 186 L116 157 Z" ${st('#f3e6d3', 3)}/><path d="M84 157 L100 186 L116 157" fill="none" stroke="#ffbe69" stroke-width="3"/>`;
       case 'armor': return `<ellipse cx="40" cy="178" rx="27" ry="18" ${st('#7d8790')}/><ellipse cx="160" cy="178" rx="27" ry="18" ${st('#7d8790')}/><path d="M66 184 Q100 198 134 184" fill="none" stroke="${O}" stroke-width="3"/><path d="M84 158 Q100 168 116 158" fill="none" stroke="${O}" stroke-width="3"/><circle cx="74" cy="176" r="2.5" fill="${O}"/><circle cx="126" cy="176" r="2.5" fill="${O}"/><path d="M60 170 Q100 158 140 170" fill="none" stroke="#fff" stroke-width="3" opacity=".4"/>`;
       default: return '';
@@ -229,8 +275,18 @@ const Avatar = (() => {
     if (!cfg || typeof cfg !== 'object') return c;
     for (const p of Object.keys(parts)) if (parts[p].options.some(o => o[0] === cfg[p])) c[p] = cfg[p];
     for (const k of ['skin', 'hairColor', 'eyeColor', 'headwearColor', 'outfitColor', 'bg']) if (HEX.test(cfg[k])) c[k] = cfg[k];
+    if (SPECIAL_BG.includes(cfg.bg)) c.bg = cfg.bg;
     c.extras = Array.isArray(cfg.extras) ? cfg.extras.filter(e => extras.some(x => x[0] === e)) : d.extras;
     return c;
+  }
+
+  const STARS = [[18, 22], [42, 14], [70, 30], [130, 18], [160, 34], [184, 16], [24, 60], [176, 70], [12, 110], [190, 120], [34, 150], [168, 160], [150, 40], [58, 48]];
+  function background(bg, id, rays) {
+    if (bg === 'aurora') return `<defs><linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1b3a"/><stop offset=".45" stop-color="#0b6f7a"/><stop offset="1" stop-color="#3b2a63"/></linearGradient></defs><rect width="200" height="200" fill="url(#${id}a)"/><path d="M-10 70 Q50 30 100 60 T210 40 V90 Q150 70 100 96 T-10 100Z" fill="#0bc5d2" opacity=".25"/><path d="M-10 40 Q60 10 110 34 T210 20 V50 Q150 36 100 60 T-10 64Z" fill="#a77be0" opacity=".2"/>`;
+    if (bg === 'ember') return `<defs><radialGradient id="${id}a" cx=".5" cy=".75" r=".75"><stop offset="0" stop-color="#d4704c"/><stop offset=".6" stop-color="#7a1e10"/><stop offset="1" stop-color="#2a0603"/></radialGradient></defs><rect width="200" height="200" fill="url(#${id}a)"/><path d="${rays}" fill="#ffbe69" opacity=".07"/><g fill="#ffbe69">${STARS.map(([x, y], i) => `<circle cx="${x}" cy="${y + 30}" r="${1 + (i % 3) * .6}" opacity="${.4 + (i % 4) * .15}"/>`).join('')}</g>`;
+    if (bg === 'royal') return `<rect width="200" height="200" fill="#3a0905"/><path d="${rays}" fill="#ffbe69" opacity=".16"/><circle cx="100" cy="120" r="80" fill="#ffbe69" opacity=".08"/>`;
+    if (bg === 'starfield') return `<defs><radialGradient id="${id}a" cx=".5" cy=".4" r=".8"><stop offset="0" stop-color="#1d2a5a"/><stop offset="1" stop-color="#05070f"/></radialGradient></defs><rect width="200" height="200" fill="url(#${id}a)"/><g fill="#fff">${STARS.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${.8 + (i % 3) * .5}" opacity="${.5 + (i % 3) * .2}"/>`).join('')}</g><path d="M150 40 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2z" fill="#ffe3a8"/>`;
+    return `<rect width="200" height="200" fill="${bg}"/><path d="${rays}" fill="#fff" opacity=".08"/>`;
   }
 
   function svg(cfg, opts = {}) {
@@ -246,14 +302,13 @@ const Avatar = (() => {
     }
     const ex = new Set(c.extras || []);
     const sleeve = c.outfit === 'armor' ? '#9aa3ad' : c.outfitColor;
-    const hideHair = c.headwear === 'helmet' || c.headwear === 'hood' && !['long', 'curly'].includes(c.hair);
-    const hairFrontStyle = (c.headwear === 'hat' || c.headwear === 'beanie' || c.headwear === 'cap') && ['curly', 'spiky', 'afro', 'bun'].includes(c.hair) ? 'short' : c.hair;
+    const hideHair = c.headwear === 'helmet' || c.headwear === 'horned' || c.headwear === 'hood' && !['long', 'curly'].includes(c.hair);
+    const hairFrontStyle = ['hat', 'beanie', 'cap', 'bandana', 'wizard'].includes(c.headwear) && ['curly', 'spiky', 'afro', 'bun'].includes(c.hair) ? 'short' : c.hair;
 
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${view}" width="${size}" height="${size}" class="avatar-svg" role="img" aria-label="${U.esc(opts.label || 'Avatar')}" style="--av-skin:${c.skin}">
       <defs><clipPath id="${id}"><rect x="0" y="0" width="200" height="200" rx="${rx}"/></clipPath></defs>
       <g clip-path="url(#${id})">
-        <rect width="200" height="200" fill="${c.bg}"/>
-        <path d="${rays}" fill="#fff" opacity=".08"/>
+        ${background(c.bg, id, rays)}
         <circle cx="100" cy="120" r="70" fill="#fff" opacity=".06"/>
         ${headwearBack(c.headwear, c.headwearColor)}
         ${hideHair ? '' : hairBack(c.hair, c.hairColor)}
@@ -265,6 +320,7 @@ const Avatar = (() => {
         ${head(c.face, c.skin)}
         ${ex.has('blush') ? '<ellipse cx="70" cy="116" rx="9" ry="5" fill="#ff6b6b" opacity=".35"/><ellipse cx="130" cy="116" rx="9" ry="5" fill="#ff6b6b" opacity=".35"/>' : ''}
         ${ex.has('freckles') ? '<g fill="#8a4a2a" opacity=".55"><circle cx="70" cy="110" r="1.6"/><circle cx="76" cy="114" r="1.6"/><circle cx="66" cy="115" r="1.6"/><circle cx="130" cy="110" r="1.6"/><circle cx="124" cy="114" r="1.6"/><circle cx="134" cy="115" r="1.6"/></g>' : ''}
+        ${ex.has('warpaint') ? `<path d="M62 108 L84 113 M64 116 L82 119 M138 108 L116 113 M136 116 L118 119" stroke="#b3261e" stroke-width="4" stroke-linecap="round" opacity=".85"/>` : ''}
         ${beard(c.beard, c.hairColor)}
         ${eyes(c)}
         ${brows(c.brows, c.hairColor)}
@@ -273,6 +329,7 @@ const Avatar = (() => {
         ${glasses(c.glasses)}
         ${ex.has('bandage') ? `<g transform="rotate(-20 100 92)"><rect x="90" y="88" width="20" height="9" rx="3" ${st('#f3e6d3', 2.5)}/><path d="M97 90 V95 M103 90 V95" stroke="${O}" stroke-width="1.5" opacity=".4"/></g>` : ''}
         ${ex.has('scar') ? `<path d="M124 104 L134 124 M126 110 l6 -3 M129 117 l6 -3" stroke="#a83a3a" stroke-width="2.5" stroke-linecap="round" fill="none"/>` : ''}
+        ${ex.has('earring') ? `<circle cx="${100 - (HEAD_RX[c.face] || 46) - 2}" cy="114" r="4" ${st('#ffbe69', 2.5)}/>` : ''}
         ${hideHair ? '' : hairFront(hairFrontStyle, c.hairColor)}
         ${headwearFront(c.headwear, c.headwearColor)}
         ${ex.has('sweat') ? `<path d="M138 64 Q132 74 138 78 Q144 74 138 64 Z" ${st('#9fe3f0', 2.5)}/>` : ''}
@@ -281,24 +338,46 @@ const Avatar = (() => {
     </svg>`;
   }
 
-  /* ---------- Déblocages ---------- */
-  function lockOf(part, id) {
-    if (part === 'extras') return (extras.find(e => e[0] === id) || [])[2] || null;
-    if (part === 'bg') return (colors.bg.find(b => b.c === id) || {}).unlock || null;
-    return ((parts[part]?.options || []).find(o => o[0] === id) || [])[2] || null;
+  /* ---------- Déblocages & rareté ---------- */
+  function entry(part, id) {
+    if (part === 'extras') return extras.find(e => e[0] === id) || null;
+    if (part === 'bg') { const b = colors.bg.find(x => x.c === id); return b ? [b.c, b.label || 'Fond', b.unlock, b.r] : null; }
+    return (parts[part]?.options || []).find(o => o[0] === id) || null;
   }
+  const lockOf = (part, id) => (entry(part, id) || [])[2] || null;
+  const rarityOf = (part, id) => RARITY[(entry(part, id) || [])[3] || 'c'];
   function isUnlocked(state, lock) {
-    return !lock || Engine.levelOf(state, lock.domain) >= lock.level;
+    if (!lock) return true;
+    if (lock.arc) return state.npc?.arcs?.[lock.arc]?.status === 'done';
+    if (lock.xp) return Engine.totalXP(state) >= lock.xp;
+    if (lock.quests) return Object.values(state.quests || {}).flat().filter(q => q.done).length >= lock.quests;
+    if (lock.streak) return Engine.bestStreak(state) >= lock.streak;
+    return Engine.levelOf(state, lock.domain) >= lock.level;
   }
-  /* Liste des objets débloqués entre deux niveaux d'un domaine (pour la fenêtre de niveau) */
-  function unlocksBetween(domain, from, to) {
+  function lockLabel(lock) {
+    if (!lock) return '';
+    if (lock.arc) { const a = ARCS.find(x => x.id === lock.arc); return a ? `Quête « ${a.title} »` : 'Quête'; }
+    if (lock.xp) return `${U.fmtNum(lock.xp)} XP au total`;
+    if (lock.quests) return `${lock.quests} quêtes du jour`;
+    if (lock.streak) return `Série de ${lock.streak} jours`;
+    return `${lock.domain === 'char' ? 'Personnage' : GAME.domains[lock.domain].name} niv. ${lock.level}`;
+  }
+  /* Tous les objets à débloquer : { key, part, id, label, lock, rarity } */
+  function lockedItems() {
     const out = [];
-    for (const [part, def] of Object.entries(parts)) {
-      for (const [, label, lock] of def.options) if (lock && lock.domain === domain && lock.level > from && lock.level <= to) out.push(`${def.label} : ${label}`);
-    }
-    for (const [, label, lock] of extras) if (lock && lock.domain === domain && lock.level > from && lock.level <= to) out.push(`Détail : ${label}`);
-    for (const b of colors.bg) if (b.unlock && b.unlock.domain === domain && b.unlock.level > from && b.unlock.level <= to) out.push(`Fond : ${b.label}`);
+    for (const [part, def] of Object.entries(parts)) for (const [id, label, lock, r] of def.options) if (lock) out.push({ key: `${part}:${id}`, part, partLabel: def.label, id, label, lock, rarity: RARITY[r || 'c'] });
+    for (const [id, label, lock, r] of extras) if (lock) out.push({ key: `extras:${id}`, part: 'extras', partLabel: 'Détail', id, label, lock, rarity: RARITY[r || 'c'] });
+    for (const b of colors.bg) if (b.unlock) out.push({ key: `bg:${b.c}`, part: 'bg', partLabel: 'Fond', id: b.c, label: b.label, lock: b.unlock, rarity: RARITY[b.r || 'c'] });
     return out;
+  }
+  const unlockedKeys = state => lockedItems().filter(i => isUnlocked(state, i.lock)).map(i => i.key);
+  const arcRewards = arcId => lockedItems().filter(i => i.lock.arc === arcId);
+  /* Aperçu d'un objet seul, appliqué à un avatar */
+  function preview(base, item, size = 120) {
+    const cfg = { ...clean(base) };
+    if (item.part === 'extras') cfg.extras = [...new Set([...(cfg.extras || []), item.id])];
+    else cfg[item.part] = item.id;
+    return svg(cfg, { size, crop: ['headwear', 'glasses', 'extras', 'beard'].includes(item.part) ? 'face' : null });
   }
   /* Remplace les objets verrouillés par la valeur par défaut */
   function sanitize(state, cfg) {
@@ -310,5 +389,5 @@ const Avatar = (() => {
     return c;
   }
 
-  return { svg, parts, extras, colors, defaults, random, lockOf, isUnlocked, unlocksBetween, sanitize, sanitizeForeign: clean };
+  return { svg, parts, extras, colors, RARITY, defaults, random, lockOf, rarityOf, isUnlocked, lockLabel, lockedItems, unlockedKeys, arcRewards, preview, sanitize, sanitizeForeign: clean };
 })();

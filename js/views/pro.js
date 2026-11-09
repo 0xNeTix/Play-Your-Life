@@ -16,7 +16,7 @@ Views.pro = {
         <div class="sk-head"><span class="sk-ico">${sd.icon}</span><div><h3>${sd.name}</h3><div class="stars">${stars}</div></div></div>
         <p class="muted small">${q.tier ? `Validé : ${b.tierNames[q.tier]}` : 'Non évalué'}</p>
         ${q.tier >= maxTier ? '<div class="pill ok">Maîtrisé ✔</div>'
-          : locked ? `<button class="btn" disabled>⏳ Réessai dans ${U.fmtRemaining(q.lockUntil - now)}</button>`
+          : locked ? `<button class="btn" disabled>Réessai dans ${U.fmtRemaining(q.lockUntil - now)}</button>`
           : `<button class="btn primary" data-act="quizStart" data-sub="${sd.id}">Passer le test : ${b.tierNames[q.tier + 1]}</button>`}
         <details class="sk-missions"><summary>Missions pratiques (${missions.filter(m => s.missions[m.id]).length}/${missions.length})</summary>${UI.missions(missions)}</details>
       </div>`;
@@ -26,20 +26,20 @@ Views.pro = {
 
     return `
       <header class="page-head">
-        <p class="eyebrow">💼 Métier · ${U.esc(s.profile.proDomainName)} · Niv. ${info.level} · ${U.esc(Engine.title('pro', info.level))}</p>
+        <p class="eyebrow">Métier · ${U.esc(s.profile.proDomainName)} · Niv. ${info.level} · ${U.esc(Engine.title('pro', info.level))}</p>
         <h1>Tes compétences, prouvées.</h1>
         ${UI.xpBar(info, 'pro')}
         <p class="muted small">${U.fmtNum(info.into)} / ${U.fmtNum(info.need)} XP avant le niveau ${info.level + 1}</p>
       </header>
 
       ${b ? `
-        <div class="callout small">🧪 Chaque test : ${b.questionsPerQuiz} questions, ${b.passScore} bonnes réponses pour valider. Un échec, ou un test abandonné, bloque le sous-domaine ${b.cooldownHours} h : révise avant de retenter. Chaque palier validé débloque une mission pratique à faire pour de vrai.</div>
+        <div class="callout small">Chaque test : ${b.questionsPerQuiz} questions, ${b.passScore} bonnes réponses pour valider. Un échec, ou un test abandonné, bloque le sous-domaine ${b.cooldownHours} h : révise avant de retenter. Chaque palier validé débloque une mission pratique à faire pour de vrai.</div>
         <section class="grid3">${tree}</section>`
       : `<div class="callout">Les tests de connaissances ne sont pas encore disponibles pour « ${U.esc(s.profile.proDomainName)} ». Tu peux déjà gagner de l'XP Métier avec tes réalisations réelles ci-dessous. Pour ajouter une banque de questions, crée un fichier sur le modèle de <code>js/data/quiz-it.js</code>.</div>`}
 
       <section class="cols">
         <div class="card">
-          <div class="card-head"><h2>🏆 Déclarer une réalisation réelle</h2></div>
+          <div class="card-head"><h2>Déclarer une réalisation réelle</h2></div>
           <form data-form="achievement" class="stack-form">
             <label>Type<select name="type">${Object.entries(GAME.achievementTypes).map(([k, t]) => `<option value="${k}">${t.label} (+${t.xp} XP)</option>`).join('')}</select></label>
             <label>Intitulé<input name="title" required maxlength="100" placeholder="Ex. CCNA 200-301, refonte de l'API facturation…"></label>
@@ -48,14 +48,14 @@ Views.pro = {
           </form>
         </div>
         <div class="card">
-          <div class="card-head"><h2>📜 Palmarès</h2><span class="muted small">${ach.length}</span></div>
+          <div class="card-head"><h2>Palmarès</h2><span class="muted small">${ach.length}</span></div>
           ${ach.length ? `<ul class="log">${ach.map(a => `<li><span>${U.esc(GAME.achievementTypes[a.type]?.label || a.type)}</span><strong>${U.esc(a.title)}</strong><small>${U.fmtDate(a.ts)} · ${U.esc(a.proof)}</small></li>`).join('')}</ul>`
             : '<p class="empty-hint">Rien encore. Une formation finie, un projet livré, une certif : tout ce qui est réel compte.</p>'}
         </div>
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>🎯 Missions Métier</h2></div>
+        <div class="card-head"><h2>Missions Métier</h2></div>
         ${UI.missions(GAME.missions.filter(m => m.domain === 'pro'))}
       </section>`;
   },
@@ -141,7 +141,7 @@ Views.quiz = {
         <div class="score-big">${z.score}<small>/${z.questions.length}</small></div>
         <h2>${z.passed ? 'Palier validé !' : 'Pas encore.'}</h2>
         <p class="muted">${z.passed ? `+${GAME.xp.quizTier[z.tier]} XP Métier.` : `Il fallait ${b.passScore} bonnes réponses. Relis les explications, révise, et retente dans ${b.cooldownHours} h.`}</p>
-        ${z.passed && m ? `<div class="callout">🎯 <strong>Mission débloquée :</strong> ${U.esc(m.text)} <small>(+${m.xp} XP quand tu l'auras faite pour de vrai)</small></div>` : ''}
+        ${z.passed && m ? `<div class="callout"><strong>Mission débloquée :</strong> ${U.esc(m.text)} <small>(+${m.xp} XP quand tu l'auras faite pour de vrai)</small></div>` : ''}
         <a class="btn primary" href="#/pro">Retour à l'arbre de compétences</a>
       </div>`;
     }
@@ -156,7 +156,7 @@ Views.quiz = {
         if (answered) cls = o.ok ? 'right' : i === z.picked ? 'wrong' : 'dim';
         return `<button class="opt ${cls}" data-act="quizAnswer" data-i="${i}" ${answered ? 'disabled' : ''}><span class="opt-l">${'ABCD'[i]}</span>${U.esc(o.t)}</button>`;
       }).join('')}</div>
-      ${answered ? `<div class="explain ${cur.opts[z.picked].ok ? 'ok' : 'ko'}"><strong>${cur.opts[z.picked].ok ? '✔ Correct' : '✘ Raté'}</strong> ${U.esc(cur.e)}</div>
+      ${answered ? `<div class="explain ${cur.opts[z.picked].ok ? 'ok' : 'ko'}"><strong>${cur.opts[z.picked].ok ? 'Correct' : 'Raté'}</strong> ${U.esc(cur.e)}</div>
         <button class="btn primary" data-act="quizNext">${z.i < z.questions.length - 1 ? 'Question suivante' : 'Voir le résultat'}</button>` : ''}
     </div>`;
   },

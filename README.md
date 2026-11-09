@@ -23,8 +23,14 @@ Chaque niveau débloque un titre, de nouvelles missions IRL ou les **récompense
 ## Personnage, avatar et carte
 
 - À la création : prénom, **taille et poids** (obligatoires), photo de profil (optionnelle, recadrée au carré, gardée sur l'appareil).
-- **Avatar** façon Bitmoji (onglet ouvert en cliquant sur ton portrait) : visage, teint, coupe, yeux, sourcils, bouche, pilosité, lunettes, couvre-chef, tenue, détails, geste, fond. Certains objets se débloquent en montant de niveau (casque de la Garde, couronne, armure…). Moteur de dessin : `js/avatar.js`.
-- **Carte de joueur** (aperçu dans Réglages et Guilde) : couleur selon le niveau du personnage (Cuivre 1–3, Argent 4–6, Or 7–9, Rubis 10–14, Légende 15+), photo ou avatar, niveaux par domaine. La carte partagée montre l'avatar, jamais la photo.
+- **Avatar** façon Bitmoji (clic sur ton portrait) : visage, cheveux, yeux, bouche, pilosité, lunettes, couvre-chef, tenue, détails, cadre, fond. Moteur de dessin : `js/avatar.js`.
+- **Cosmétiques et rareté** : Commun, Rare, Épique, Légendaire. Ils se débloquent par niveau de domaine, en terminant une quête de PNJ (chaque PNJ offre un objet), par XP totale cumulée, par nombre de quêtes du jour ou par série de jours. Chaque nouvel objet est révélé par une animation, avec un bouton pour l'équiper.
+- **Carte de joueur** (Réglages et Guilde) : carte métallique dont le métal suit le niveau du personnage (Cuivre 1–3, Argent 4–6, Or 7–9, Rubis 10–14, Légende 15+ holographique), portrait avec son cadre, niveaux par domaine, numéro de série. La carte partagée montre l'avatar, jamais la photo.
+
+## Course à pied et Strava
+
+Strava ne permet pas de lire une activité à partir de son simple lien : il faut leur API (connexion OAuth et serveur). En attendant, l'import se fait par fichier :
+sur Strava, ouvre l'activité, menu « … » → **Exporter GPX**, puis dépose le fichier dans Corps → Course. Distance, temps en mouvement, rythme, dénivelé et date sont calculés localement (GPX et TCX, aussi Garmin, Coros, Suunto). Le lien Strava peut être ajouté comme preuve. Une course de plus de 7 jours est archivée sans XP, et un même fichier ne peut pas être importé deux fois.
 
 ## PNJ et quêtes
 

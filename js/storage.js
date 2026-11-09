@@ -85,7 +85,7 @@ const Store = (() => {
     version: SCHEMA_VERSION,
     id: null,
     profile: null,            // { name, proDomain, proDomainName, createdAt }
-    settings: { theme: 'auto', squatUnit: 'reps', runTest: 'cooper', weeklyGoal: 3 },
+    settings: { theme: 'auto', squatUnit: 'reps', runTest: 'cooper', weeklyGoal: 3, sound: true },
     xpLog: [],                // { id, ts, domain, amount, reason, ref? }
     sport: { tests: [], checkins: [], sessions: [], runs: [], goalWeeks: {} },
     pro: { quiz: {}, achievements: [] },
@@ -95,6 +95,7 @@ const Store = (() => {
     bosses: {},               // weekKey -> { text, domain, done, doneTs, note }
     rewards: [],              // { id, domain, level, text, claimedTs }
     npc: { arcs: {}, encounters: {}, lastTs: 0, titles: [] },
+    cosmetics: { seen: null }, // objets d'avatar déjà annoncés
     friends: [],              // cartes de joueurs importées
   });
 
@@ -102,7 +103,7 @@ const Store = (() => {
   function migrate(raw) {
     const d = fresh();
     const s = Object.assign(d, raw);
-    for (const k of ['settings', 'sport', 'pro', 'intel', 'npc']) s[k] = Object.assign(fresh()[k], raw[k] || {});
+    for (const k of ['settings', 'sport', 'pro', 'intel', 'npc', 'cosmetics']) s[k] = Object.assign(fresh()[k], raw[k] || {});
     s.version = SCHEMA_VERSION;
     return s;
   }

@@ -34,7 +34,7 @@ Views.home = {
       <li class="quest ${q.done ? 'done' : ''}">
         <button class="check" data-act="questDone" data-id="${q.id}" ${q.done ? 'disabled' : ''} aria-label="Valider la quête">${q.done ? '✓' : ''}</button>
         <div class="q-main"><div class="q-text">${U.esc(q.text)}</div><div class="q-meta">${UI.domainBadge(q.domain)}<span class="q-xp">+${q.xp || GAME.customQuestXp} XP</span></div></div>
-        ${q.done ? '' : `<button class="btn ghost sm" data-act="timer" data-text="${U.esc(q.text)}" title="Démarrer 5 minutes">⏱ 5 min</button>
+        ${q.done ? '' : `<button class="btn ghost sm" data-act="timer" data-text="${U.esc(q.text)}" title="Démarrer 5 minutes">5 min</button>
         <button class="icon-btn" data-act="questDel" data-id="${q.id}" aria-label="Supprimer">✕</button>`}
       </li>`).join('');
 
@@ -53,12 +53,12 @@ Views.home = {
 
       <section class="cols">
         <div class="card">
-          <div class="card-head"><h2>⚔️ Quêtes du jour</h2><span class="pill">${doneN} / ${GAME.maxQuestsPerDay}</span></div>
+          <div class="card-head"><h2>Quêtes du jour</h2><span class="pill">${doneN} / ${GAME.maxQuestsPerDay}</span></div>
           <p class="muted small">${GAME.maxQuestsPerDay} actions maximum, faisables aujourd'hui. Ce qui n'est pas fait disparaît à minuit : pas de liste infinie.</p>
           ${quests.length ? `<ul class="quests">${questRows}</ul>` : '<p class="empty-hint">Aucune quête. Pioche dans le tableau ci-dessous une action que tu peux commencer dans les 5 prochaines minutes.</p>'}
           ${quests.length < GAME.maxQuestsPerDay ? `
             <div class="board">
-              <div class="board-head"><h3>📋 Tableau des quêtes</h3>
+              <div class="board-head"><h3>Tableau des quêtes</h3>
                 <div class="seg">${['all', ...GAME.domainOrder].map(d => `<button class="${this.boardDomain === d ? 'on' : ''}" data-act="boardFilter" data-d="${d}">${d === 'all' ? 'Toutes' : GAME.domains[d].icon}</button>`).join('')}</div>
               </div>
               <ul class="board-list">${board.map(q => `<li><button class="board-item dom-${q.domain}" data-act="questPick" data-i="${q.i}">
@@ -77,36 +77,36 @@ Views.home = {
         <div class="stack">
           <div class="mini-grid">
             <div class="card streak-card">
-              <div class="streak-n">🔥 ${streak}</div>
+              <div class="streak-n">${Icons.get('flame', 26)}${streak}</div>
               <div><strong>jour${streak > 1 ? 's' : ''} de série</strong><p class="muted small">Record : ${Engine.bestStreak(s)} j</p></div>
             </div>
             <a class="card streak-card link" href="#/sport/seances">
-              <div class="streak-n">🏋️ ${weekW}/${goal}</div>
+              <div class="streak-n">${Icons.get('sport', 26)}${weekW}/${goal}</div>
               <div><strong>séances cette semaine</strong><p class="muted small">${Engine.weekStreak(s)} sem. d'affilée à l'objectif</p></div>
             </a>
           </div>
 
           <a class="card link-card ${checkin ? 'ok' : 'todo'}" href="#/sport/physique">
-            <span class="lc-ico">📸</span>
+            <span class="lc-ico">${Icons.get('camera', 22)}</span>
             <div><strong>Check-in physique — semaine ${wk.split('-W')[1]}</strong>
             <p class="muted small">${checkin ? `Fait · score ${checkin.total}/100` : `À faire : photo + auto-évaluation (+${GAME.xp.checkin} XP)`}</p></div>
             <span class="lc-go">${checkin ? '✓' : '→'}</span>
           </a>
 
           <div class="card">
-            <div class="card-head"><h2>📜 Quêtes de PNJ</h2><a href="#/journal" class="small">Journal →</a></div>
+            <div class="card-head"><h2>Quêtes de PNJ</h2><a href="#/journal" class="small">Journal →</a></div>
             ${arcs.length ? `<ul class="arc-mini">${arcs.map(a => {
               const p = Engine.arcProgress(s, a);
               const ready = s.npc.arcs[a.id].status === 'ready';
               return `<li><span class="am-ico">${UI.npcFace(a.npc, 36)}</span><div><strong>${U.esc(a.title)}</strong>
                 <div class="xpbar sm"><span style="width:${(p.count / p.steps.length) * 100}%"></span></div>
-                <small class="muted">${ready ? '✨ Retourne voir ' + U.esc(NPCS[a.npc].name) : `${p.count}/${p.steps.length} étapes · ${U.esc(NPCS[a.npc].name)}`}</small></div></li>`;
+                <small class="muted">${ready ? 'Retourne voir ' + U.esc(NPCS[a.npc].name) : `${p.count}/${p.steps.length} étapes · ${U.esc(NPCS[a.npc].name)}`}</small></div></li>`;
             }).join('')}</ul>` : '<p class="muted small">Aucune quête en cours. Les PNJ apparaissent au hasard, une à deux fois par jour, quand tu agis.</p>'}
           </div>
 
           <div class="card boss ${bossOpen ? '' : 'locked'}">
-            <div class="card-head"><h2>👹 Boss de la semaine</h2>${boss?.done ? '<span class="pill ok">Vaincu</span>' : ''}</div>
-            ${!bossOpen ? `<p class="muted">🔒 Se débloque au niveau ${GAME.bossUnlockCharLevel} du personnage (actuel : ${cl.level}).</p>`
+            <div class="card-head"><h2>Boss de la semaine</h2>${boss?.done ? '<span class="pill ok">Vaincu</span>' : ''}</div>
+            ${!bossOpen ? `<p class="muted">Se débloque au niveau ${GAME.bossUnlockCharLevel} du personnage (actuel : ${cl.level}).</p>`
             : boss ? `
               <p class="boss-text">${U.esc(boss.text)}</p>${UI.domainBadge(boss.domain)}
               ${boss.done ? `<p class="muted small">Vaincu le ${U.fmtDate(boss.doneTs)} · « ${U.esc(boss.note)} »</p>` : `
@@ -125,7 +125,7 @@ Views.home = {
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>⚡ Missions de Discipline</h2><span class="muted small">Niv. ${Engine.domainLevel(s, 'discipline').level}</span></div>
+        <div class="card-head"><h2>Missions de Discipline</h2><span class="muted small">Niv. ${Engine.domainLevel(s, 'discipline').level}</span></div>
         ${UI.missions(GAME.missions.filter(m => m.domain === 'discipline'))}
       </section>`;
   },
@@ -187,7 +187,7 @@ Views.onboarding = {
     const hasOthers = !!App._profilesCache?.length;
     return `
       <div class="onboard">
-        <div class="brand big"><span class="brand-mark">⚔️</span><span>Play Your Life</span></div>
+        <div class="brand big"><span class="brand-mark">${Icons.get('sword', 18)}</span><span>Play Your Life</span></div>
         <h1>Ta vie est le jeu.<br>Ton personnage, c'est toi.</h1>
         <p class="lead">Ici, aucun XP ne s'obtient en planifiant. Tu gagnes des niveaux en faisant de vraies choses : tests physiques, séances, courses, photos hebdomadaires, tests de compétences, livres terminés, quêtes confiées par des PNJ.</p>
         <form data-form="onboard" class="card onboard-form">
@@ -207,7 +207,7 @@ Views.onboarding = {
           <p class="muted small">La photo est optionnelle et reste sur ton appareil. Tu créeras aussi ton avatar à l'étape suivante.</p>
           <label>Ton domaine professionnel
             <select name="proDomain" data-change="obDomain">
-              <option value="it">💻 Informatique (tests disponibles : réseau, dev, cyber, cloud, systèmes, data)</option>
+              <option value="it">Informatique (tests disponibles : réseau, dev, cyber, cloud, systèmes, data)</option>
               <option value="other">Autre domaine</option>
             </select>
           </label>

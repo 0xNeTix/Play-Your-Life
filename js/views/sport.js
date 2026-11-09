@@ -1,5 +1,5 @@
 /* Corps : tests, séances & régularité, course à pied, physique (photos), missions */
-const SPORT_TABS = [['tests', '🏁 Tests'], ['seances', '🏋️ Séances'], ['course', '🏃 Course'], ['physique', '📸 Physique'], ['missions', '🎯 Missions']];
+const SPORT_TABS = [['tests', 'Tests'], ['seances', 'Séances'], ['course', 'Course'], ['physique', 'Physique'], ['missions', 'Missions']];
 
 Views.sport = {
   render([tab = 'tests']) {
@@ -43,7 +43,7 @@ Views.sport = {
     }).join('');
 
     return `
-      ${noTests ? '<div class="callout">🎯 <strong>Première étape :</strong> fais maintenant tes tests de référence. Ils n\'ont pas besoin d\'être bons, ils doivent être vrais.</div>' : ''}
+      ${noTests ? '<div class="callout"><strong>Première étape :</strong> fais maintenant tes tests de référence. Ils n\'ont pas besoin d\'être bons, ils doivent être vrais.</div>' : ''}
       <section class="grid-auto">${cards}</section>
       <section class="cols">
         <div class="card">
@@ -54,11 +54,11 @@ Views.sport = {
                 ${exos.map(k => `<option value="${k}">${GAME.exercises[k].icon} ${GAME.exercises[k].name}</option>`).join('')}
               </select>
             </label>
-            <p class="rule small" id="exo-rule">📏 ${U.esc(GAME.exercises[exos[0]].rule)}</p>
+            <p class="rule small" id="exo-rule">${U.esc(GAME.exercises[exos[0]].rule)}</p>
             <label><span id="exo-label">${this.testLabel(exos[0])}</span>
               <div class="row">
                 <input name="value" id="exo-value" required inputmode="numeric" autocomplete="off">
-                <button type="button" class="btn ghost" id="chrono-btn" hidden>⏱ Chrono</button>
+                <button type="button" class="btn ghost" id="chrono-btn" hidden>Chrono</button>
               </div>
             </label>
             <button class="btn primary">Valider le test</button>
@@ -88,12 +88,12 @@ Views.sport = {
       if (iv) {
         clearInterval(iv); iv = null;
         input.value = Math.floor((Date.now() - t0) / 1000);
-        btn.textContent = '⏱ Chrono';
+        btn.textContent = 'Chrono';
         btn.classList.remove('running');
       } else {
         t0 = Date.now();
         btn.classList.add('running');
-        iv = setInterval(() => { const sec = Math.floor((Date.now() - t0) / 1000); btn.textContent = `⏹ ${U.fmtClock(sec)}`; input.value = sec; }, 250);
+        iv = setInterval(() => { const sec = Math.floor((Date.now() - t0) / 1000); btn.textContent = `${U.fmtClock(sec)}`; input.value = sec; }, 250);
       }
     };
   },
@@ -224,7 +224,13 @@ Views.sport = {
       <section class="cols">
         <div class="card">
           <div class="card-head"><h2>Enregistrer une course</h2></div>
-          <form data-form="run" class="stack-form">
+          <div class="import-box">
+            <div class="import-head">${Icons.get('upload', 18)}<div><strong>Importer depuis Strava</strong><small>Sur Strava, ouvre ton activité puis « … » → <em>Exporter GPX</em>, et dépose le fichier ici. Fonctionne aussi avec Garmin, Coros, Suunto (GPX ou TCX).</small></div></div>
+            <label class="btn ghost import-btn">Choisir un fichier GPX / TCX<input type="file" accept=".gpx,.tcx,application/gpx+xml,application/xml,text/xml" data-change="runImport" hidden></label>
+            <div class="import-result" id="import-result" hidden></div>
+          </div>
+          <form data-form="run" class="stack-form" id="run-form">
+            <input type="hidden" name="importStart"><input type="hidden" name="importElev"><input type="hidden" name="importName">
             <div class="row">
               <label>Type<select name="type">${Object.entries(GAME.runTypes).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></label>
               <label>Date<input type="date" name="date" value="${today}" min="${minDay}" max="${today}" required></label>
@@ -234,6 +240,7 @@ Views.sport = {
               <label>Temps (h:mm:ss ou mm:ss)<input name="time" required placeholder="32:15" data-input="runPreview" autocomplete="off"></label>
             </div>
             <div class="run-preview" id="run-preview"><span>Rythme : <strong>—</strong></span><span>Vitesse : <strong>—</strong></span></div>
+            <label>Lien de l'activité Strava (optionnel, sert de preuve)<input name="strava" type="url" inputmode="url" placeholder="https://www.strava.com/activities/…"></label>
             <label>Notes (optionnel)<input name="notes" maxlength="200" placeholder="Parcours, sensations…"></label>
             <button class="btn primary">Valider la course</button>
             <p class="muted small">+${GAME.xp.runPerKm} XP par km (max ${GAME.xp.runMax}), +${GAME.xp.runRecord} XP pour une plus longue sortie ou un meilleur rythme. Chaque course compte comme une séance pour ta régularité.</p>
@@ -249,8 +256,9 @@ Views.sport = {
 
       <section class="card">
         <div class="card-head"><h2>Historique des courses</h2></div>
-        ${UI.table(['Date', 'Type', 'Distance', 'Temps', 'Rythme', 'Vitesse'], runs.slice(0, 30).map(r => [
-          U.fmtDate(r.ts), GAME.runTypes[r.type] || r.type, U.fmtKm(r.km), U.fmtClock(r.sec), `${U.fmtPace(r.sec / r.km)} /km`, `${(r.km / (r.sec / 3600)).toFixed(1)} km/h`,
+        ${UI.table(['Date', 'Type', 'Distance', 'Temps', 'Rythme', 'D+', 'Source'], runs.slice(0, 30).map(r => [
+          U.fmtDate(r.ts), GAME.runTypes[r.type] || r.type, U.fmtKm(r.km), U.fmtClock(r.sec), `${U.fmtPace(r.sec / r.km)} /km`, r.elev != null ? `${r.elev} m` : '—',
+          r.strava ? `<a class="ext" href="${U.esc(r.strava)}" target="_blank" rel="noopener noreferrer">Strava ${Icons.get('link', 13)}</a>` : r.source === 'file' ? 'Fichier' : 'Manuel',
         ]))}
       </section>`;
   },
@@ -351,7 +359,7 @@ Views.sport = {
 /* ---------- Actions : tests ---------- */
 App.actions.exoRule = el => {
   const ex = GAME.exercises[el.value];
-  document.getElementById('exo-rule').textContent = '📏 ' + ex.rule;
+  document.getElementById('exo-rule').textContent = '' + ex.rule;
   document.getElementById('exo-label').textContent = Views.sport.testLabel(el.value);
   document.getElementById('chrono-btn').hidden = el.value !== 'plank';
 };
@@ -464,6 +472,41 @@ App.actions.runPreview = el => {
   }
 };
 
+/* Import d'un fichier GPX/TCX : on lit le fichier et on préremplit le formulaire */
+App.actions.runImport = async el => {
+  const f = el.files && el.files[0];
+  el.value = '';
+  if (!f) return;
+  const box = document.getElementById('import-result');
+  const form = document.getElementById('run-form');
+  try {
+    if (f.size > 25 * 1024 * 1024) throw new Error('fichier trop volumineux');
+    const r = RunFile.parse(await f.text(), f.name);
+    if (r.notRun) throw new Error('cette activité n\'est pas une course à pied');
+    if (!(r.km >= .2) || !(r.sec > 0)) throw new Error('distance ou durée trop faible');
+    if (r.start && App.state.sport.runs.some(x => x.start && Math.abs(x.start - r.start) < 60000)) throw new Error('cette course est déjà enregistrée');
+    form.km.value = r.km;
+    form.time.value = U.fmtClock(r.sec);
+    form.importStart.value = r.start || '';
+    form.importElev.value = r.elev;
+    form.importName.value = r.name;
+    if (r.start) {
+      const day = U.dayKey(r.start);
+      form.date.removeAttribute('min');
+      form.date.value = day;
+    }
+    App.actions.runPreview(form.km);
+    const old = r.start && Date.now() - r.start > 7 * 86400000;
+    box.hidden = false;
+    box.innerHTML = `<div class="import-stats"><span><b>${U.fmtKm(r.km)}</b>distance</span><span><b>${U.fmtClock(r.sec)}</b>en mouvement</span><span><b>${U.fmtPace(r.sec / r.km)}</b>/km</span><span><b>${r.elev} m</b>D+</span></div>
+      <small>${r.start ? U.fmtDate(r.start, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Date absente du fichier'}${r.name ? ' · ' + U.esc(r.name) : ''}</small>
+      ${old ? '<small class="warn-text">Course de plus de 7 jours : elle rejoindra ton historique et tes statistiques, sans XP.</small>' : '<small>Vérifie le formulaire ci-dessous, ajoute le lien Strava si tu veux, puis valide.</small>'}`;
+  } catch (e) {
+    box.hidden = false;
+    box.innerHTML = `<small class="warn-text">Import impossible : ${U.esc(e.message)}.</small>`;
+  }
+};
+
 App.forms.run = fd => {
   const s = App.state;
   const km = Math.round(Number(String(fd.get('km')).replace(',', '.')) * 100) / 100;
@@ -471,10 +514,23 @@ App.forms.run = fd => {
   const pace = sec / km;
   if (!(km >= 0.2 && km <= 300) || !(sec > 0)) { App.toast('Distance ou temps invalide.', 'warn'); return; }
   if (pace < 150 || pace > 1200) { App.toast(`Rythme de ${U.fmtPace(pace)} /km improbable : vérifie le temps (h:mm:ss ou mm:ss).`, 'warn'); return; }
+  const rawLink = String(fd.get('strava') || '').trim();
+  const strava = rawLink ? RunFile.stravaLink(rawLink) : null;
+  if (rawLink && !strava) { App.toast('Lien Strava non reconnu (attendu : strava.com/activities/… ou strava.app.link/…).', 'warn'); return; }
   const prev = Engine.runStats(s);
   const id = U.uid();
-  const ts = tsFromDate(fd.get('date'));
-  s.sport.runs.push({ id, ts, type: fd.get('type'), km, sec, notes: String(fd.get('notes') || '').trim() });
+  const start = Number(fd.get('importStart')) || null;
+  const imported = !!fd.get('importElev');
+  const ts = imported && start ? Math.min(start, Date.now()) : tsFromDate(fd.get('date'));
+  const run = { id, ts, type: fd.get('type'), km, sec, notes: String(fd.get('notes') || '').trim() };
+  if (imported) Object.assign(run, { source: 'file', start, elev: Number(fd.get('importElev')) || 0 });
+  if (strava) run.strava = strava;
+  s.sport.runs.push(run);
+  if (Date.now() - ts > 7 * 86400000) {
+    App.toast(`<b>Course archivée</b><small>${U.fmtKm(km)} du ${U.fmtDate(ts)} ajoutée à ton historique (sans XP).</small>`);
+    App.commit();
+    return;
+  }
   App.grant('sport', U.clamp(Math.round(km * GAME.xp.runPerKm), GAME.xp.runMin, GAME.xp.runMax), `Course : ${U.fmtKm(km)} en ${U.fmtClock(sec)} (${U.fmtPace(pace)} /km)`, id);
   if (prev.longest && km > prev.longest.km) App.grant('sport', GAME.xp.runRecord, `Plus longue sortie : ${U.fmtKm(km)}`, id);
   if (prev.fastest && km >= 3 && pace < prev.fastest.sec / prev.fastest.km) App.grant('sport', GAME.xp.runRecord, `Meilleur rythme : ${U.fmtPace(pace)} /km`, id);
