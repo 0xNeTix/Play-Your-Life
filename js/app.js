@@ -12,6 +12,7 @@ const App = {
   async init() {
     this.bindEvents();
     this.state = await Store.init();
+    await Library.load();
     this.applyTheme();
     window.addEventListener('hashchange', () => this.render(true));
     let t;
@@ -35,7 +36,10 @@ const App = {
     this.loadPP();
     for (const arc of ARCS) if (this.state.npc.arcs[arc.id]?.status === 'ready') this.modalQueue.push(() => this.showNpc(arc, 'complete'));
     this.checkArcs();
+    this.checkEvents();
     this.checkCosmetics();
+    this.save();
+    this.render(false);
     setTimeout(() => { this.flushModals(); this.maybeEncounter('open'); }, 1200);
   },
 
@@ -91,6 +95,7 @@ const App = {
   },
 
   commit() {
+    this.checkEvents();
     this.checkArcs();
     this.checkCosmetics();
     this.save();
@@ -152,7 +157,7 @@ const App = {
           <div class="lu-title">${U.esc(Engine.title(lu.domain, lu.to))}</div>
           <div class="lu-rule"><span></span>${Icons.get('gem', 14)}<span></span></div>
           ${unlocks.length ? `<ul class="lu-unlocks">${unlocks.map((u, i) => `<li style="--i:${i}"><span class="lu-ic">${icons[u.kind]}</span><div>${U.esc(u.text)}${u.kind === 'reward' ? '<small>Récompense réelle : va la chercher, tu l\'as gagnée.</small>' : ''}${u.xp ? `<small>+${u.xp} XP quand tu l'auras accomplie</small>` : ''}</div></li>`).join('')}</ul>`
-            : `<p class="lu-none">Prochain palier : ${U.fmtNum(nextNeed)} XP. <a href="#/rewards" data-act="closeModal">Fixe-toi une récompense réelle</a>.</p>`}
+            : `<p class="lu-none">Prochain palier : ${U.fmtNum(nextNeed)} XP.</p>`}
           <button class="btn primary lu-go" data-act="closeModal">Continuer</button>
         </div>
       </div>`, 'lu-modal');
@@ -189,6 +194,71 @@ const App = {
     s.cosmetics.seen.push(...fresh);
     const all = Avatar.lockedItems();
     for (const k of fresh) this.modalQueue.push(() => this.showLoot(all.find(i => i.key === k)));
+  },
+
+  /* ---------- Boss et récompenses : tout est automatique ---------- */
+  checkEvents() {
+    const s = this.state;
+    if (!s.profile) return;
+    for (const ev of Events.tickBoss(s)) {
+      if (ev.kind === 'won') {
+        this.grant(ev.boss.domain, ev.boss.xp, `Boss vaincu : ${Events.bossDef(ev.boss).name}`);
+        this.grant('discipline', GAME.xp.bossDiscipline, 'Boss de la semaine');
+      }
+      this.modalQueue.push(() => this.showBoss(ev));
+    }
+    const gift = Events.tickGift(s);
+    if (gift) this.modalQueue.push(() => this.showGift(gift));
+  },
+
+  showBoss(ev) {
+    const b = ev.boss;
+    const def = Events.bossDef(b);
+    const left = Math.max(0, b.deadline - Date.now());
+    const days = Math.floor(left / 86400000), hours = Math.floor((left % 86400000) / 3600000);
+    const head = { spawn: 'Un boss apparaît', won: 'Boss vaincu', lost: 'Défaite' }[ev.kind];
+    const text = { spawn: def.taunt, won: def.win, lost: def.lose }[ev.kind];
+    this.modal(`
+      <div class="npc-dialog boss-dialog ${ev.kind}">
+        <p class="lu-kicker">${head}</p>
+        <div class="npc-top">
+          <div class="npc-portrait">${Avatar.svg(def.look, { size: 104, label: def.name })}</div>
+          <div><div class="npc-name">${U.esc(def.name)}</div><div class="npc-role">${U.esc(def.role)} · niveau ${b.level}</div></div>
+        </div>
+        <p class="npc-text">${U.esc(text)}</p>
+        <div class="npc-quest show">
+          ${ev.kind === 'spawn' ? `
+            <p class="eyebrow">Pour le vaincre</p>
+            <h3>${U.esc(b.text)}</h3>
+            <p class="muted small">Il te reste ${days ? days + ' j ' : ''}${hours} h, jusqu'à dimanche soir. Seul ce que tu fais à partir de maintenant compte.</p>
+            <div class="npc-reward"><span class="badge dom-${b.domain}">${GAME.domains[b.domain].icon} +${b.xp} XP</span><span class="badge stake">${Icons.get('flame', 13)} En cas d'échec : ta série de jours repart à 0</span></div>`
+          : ev.kind === 'won' ? `
+            <h3>${U.esc(b.text)}</h3>
+            <div class="npc-reward"><span class="badge dom-${b.domain}">${GAME.domains[b.domain].icon} +${b.xp} XP</span><span class="badge dom-discipline">${GAME.domains.discipline.icon} +${GAME.xp.bossDiscipline} XP</span></div>`
+          : `
+            <h3>${U.esc(b.text)}</h3>
+            <p class="warn-text">Quête non accomplie à temps : ta série de jours repart à zéro.</p>
+            <p class="muted small">Un nouveau boss viendra la semaine prochaine. Prends ta revanche.</p>`}
+          <div class="npc-actions"><button class="btn primary" data-act="closeModal">${ev.kind === 'spawn' ? 'Relever le défi' : 'Continuer'}</button></div>
+        </div>
+      </div>`, 'npc-modal boss-modal');
+    if (ev.kind === 'won') Sfx.levelUp(); else Sfx.loot(ev.kind === 'spawn' ? 'e' : 'c');
+  },
+
+  showGift(gift) {
+    this.modal(`
+      <div class="loot gift" style="--rc:var(--gold)">
+        <div class="loot-glow"></div>
+        <p class="lu-kicker">Récompense méritée</p>
+        <div class="gift-ico">${Icons.get('rewards', 54)}</div>
+        <h2 class="loot-name">${U.esc(gift.text)}</h2>
+        <p class="loot-src">Tu as gagné ${U.fmtNum(gift.xp)} XP depuis ta dernière récompense. Offre-toi ça pour de vrai.</p>
+        <div class="loot-actions">
+          <button class="btn primary" data-act="giftClaim" data-id="${gift.id}" data-close="1">Je la prends</button>
+          <button class="btn ghost" data-act="closeModal">Plus tard</button>
+        </div>
+      </div>`, 'loot-modal');
+    Sfx.loot('l');
   },
 
   /* Règle des 5 minutes : on commence, c'est tout */
@@ -338,6 +408,7 @@ const App = {
     const parts = (location.hash.replace(/^#\/?/, '') || 'home').split('/');
     let route = parts[0];
     if (route === 'stats' || route === 'settings') { parts.splice(1, 0, route); route = 'profile'; }
+    if (route === 'rewards') route = 'home';
     if (!this.state.profile) route = 'onboarding';
     if (!Views[route]) route = 'home';
     this.route = route;
@@ -365,8 +436,7 @@ const App = {
     const activeN = Engine.activeArcs(s).length + ARCS.filter(a => s.npc.arcs[a.id]?.status === 'ready').length;
     const nav = [
       ['home', 'home', 'QG'], ['sport', 'sport', 'Corps'], ['pro', 'pro', 'Métier'], ['intel', 'intel', 'Esprit'],
-      ['journal', 'quests', 'Quêtes', activeN], ['guild', 'guild', 'Multijoueur'],
-      ['rewards', 'rewards', 'Trésor'], ['profile', 'avatar', 'Profil'],
+      ['journal', 'quests', 'Quêtes', activeN], ['guild', 'guild', 'Multijoueur'], ['profile', 'avatar', 'Profil'],
     ];
     const active = this.route === 'quiz' ? 'pro' : this.route;
     side.innerHTML = `
@@ -469,17 +539,13 @@ const UI = {
     const row = m => {
       if (s.missions[m.id]) {
         const r = s.missions[m.id];
-        return `<li class="mission done">${giver(m)}<div><div>${U.esc(m.text)}</div><small>Accompli le ${U.fmtDate(r.ts)} · « ${U.esc(r.note)} »</small></div><span class="m-xp">+${m.xp}</span></li>`;
+        return `<li class="mission done">${giver(m)}<div><div>${U.esc(m.text)}</div><small>Accompli le ${U.fmtDate(r.ts)}</small></div><span class="m-xp">+${m.xp}</span></li>`;
       }
       if (!Engine.missionUnlocked(s, m)) {
         return `<li class="mission locked">${giver(m)}<div><div>${U.esc(m.text)}</div><small>${Icons.get('lock', 12)} Confié à : ${U.esc(Engine.missionLockLabel(m))}</small></div><span class="m-xp">+${m.xp}</span></li>`;
       }
-      return `<li class="mission open">${giver(m)}<div class="m-main">${who(m)}<div>${U.esc(m.text)}</div>
-        <details><summary>Je l'ai fait</summary>
-          <form data-form="mission" data-id="${m.id}" class="inline-form">
-            <input name="note" required minlength="10" maxlength="240" placeholder="Preuve : qu'as-tu fait concrètement ? (10 caractères min.)">
-            <button class="btn primary sm">Valider</button>
-          </form></details></div><span class="m-xp">+${m.xp}</span></li>`;
+      return `<li class="mission open">${giver(m)}<div class="m-main">${who(m)}<div>${U.esc(m.text)}</div></div>
+        <span class="m-xp">+${m.xp}</span><button class="btn primary sm" data-act="missionDone" data-id="${m.id}">Je l'ai fait</button></li>`;
     };
     return `<ul class="missions">${[...open, ...locked].map(row).join('')}</ul>
       ${done.length ? `<details class="m-done"><summary>Contrats accomplis (${done.length})</summary><ul class="missions">${done.map(row).join('')}</ul></details>` : ''}`;
@@ -493,14 +559,21 @@ const UI = {
   },
 };
 
-App.forms.mission = (fd, form) => {
-  const id = form.dataset.id;
+App.actions.missionDone = el => {
+  const id = el.dataset.id;
   const m = Engine.allMissions(App.state).find(x => x.id === id);
-  const note = String(fd.get('note') || '').trim();
-  if (!m || App.state.missions[id] || note.length < 10) return;
-  App.state.missions[id] = { ts: Date.now(), note };
+  if (!m || App.state.missions[id] || !Engine.missionUnlocked(App.state, m)) return;
+  App.state.missions[id] = { ts: Date.now() };
   App.grant(m.domain, m.xp, `Contrat de ${NPCS[Engine.missionGiver(m)].name} : ${m.text}`);
   App.commit();
+};
+App.actions.giftClaim = el => {
+  const g = App.state.gifts.list.find(x => x.id === el.dataset.id);
+  if (g && !g.claimedTs) g.claimedTs = Date.now();
+  if (el.dataset.close) App.closeModal();
+  App.toast('<b>Profite.</b><small>Tu l\'as méritée.</small>');
+  App.save();
+  App.render(false);
 };
 App.actions.lootEquip = el => {
   const [part, id] = el.dataset.key.split(':');

@@ -1,94 +1,19 @@
-/* Récompenses réelles, titres, réglages, profils */
-Views.rewards = {
-  render() {
-    const s = App.state;
-    const name = d => (d === 'char' ? 'Personnage' : `${GAME.domains[d].icon} ${GAME.domains[d].name}`);
-    const rw = s.rewards.slice().sort((a, b) => a.level - b.level);
-    const ready = rw.filter(r => Engine.rewardUnlocked(s, r) && !r.claimedTs);
-    const locked = rw.filter(r => !Engine.rewardUnlocked(s, r));
-    const claimed = rw.filter(r => r.claimedTs);
-    const ideas = GAME.rewardIdeas.filter(i => !s.rewards.some(r => r.text === i.text));
-
-    const titleRows = ['char', ...GAME.domainOrder].map(d => {
-      const lv = Engine.levelOf(s, d);
-      return `<div class="title-row"><span class="tr-d">${name(d)}</span><div class="tr-list">${GAME.titles[d].map(([l, t]) => `<span class="ttl ${lv >= l ? 'on' : ''}" title="Niveau ${l}">${lv >= l ? '' : ''}${U.esc(t)} <small>${l}</small></span>`).join('')}</div></div>`;
-    }).join('');
-
-    const rankRows = Engine.activeExercises(s).map(k => {
-      const b = Engine.best(s, k);
-      const idx = b == null ? -1 : Engine.rank(k, b).index;
-      return `<div class="title-row"><span class="tr-d">${GAME.exercises[k].icon} ${GAME.exercises[k].name}</span><div class="tr-list">${GAME.exercises[k].ranks.slice(1).map(([v, l], i) => `<span class="ttl ${idx >= i + 1 ? 'on' : ''} ${idx === i + 1 ? 'cur' : ''}">${l} <small>${Engine.fmtTest(k, v)}</small></span>`).join('')}</div></div>`;
-    }).join('');
-
-    return `
-      <header class="page-head">
-        <p class="eyebrow">Récompenses</p>
-        <h1>Chaque niveau se paie en vrai.</h1>
-        <p class="muted">Les meilleures récompenses ne sont pas des badges : ce sont des choses réelles que tu t'offres uniquement quand tu as atteint le niveau. Fixe-les maintenant, avant d'y être.</p>
-      </header>
-
-      <section class="cols">
-        <div class="card">
-          <div class="card-head"><h2>Nouvelle récompense réelle</h2></div>
-          <form data-form="reward" class="stack-form">
-            <div class="row">
-              <label>Domaine<select name="domain">${UI.domainOptions('sport', true)}</select></label>
-              <label>Au niveau<input name="level" type="number" min="2" max="99" value="${Engine.domainLevel(s, 'sport').level + 2}" required></label>
-            </div>
-            <label>Je m'offre…<input name="text" required maxlength="100" placeholder="Ex. un massage, un jeu, une sortie…"></label>
-            <button class="btn primary">Ajouter</button>
-          </form>
-          ${ideas.length ? `<p class="muted small">Idées :</p><div class="chips">${ideas.map(i => `<button class="chip" data-act="rewardIdea" data-d="${i.domain}" data-l="${i.level}" data-t="${U.esc(i.text)}">${name(i.domain)} ${i.level} · ${U.esc(i.text)}</button>`).join('')}</div>` : ''}
-        </div>
-
-        <div class="card">
-          <div class="card-head"><h2>À réclamer</h2><span class="pill ${ready.length ? 'ok' : ''}">${ready.length}</span></div>
-          ${ready.length ? `<ul class="rewards">${ready.map(r => `<li class="reward ready"><div><strong>${U.esc(r.text)}</strong><small>${name(r.domain)} niv. ${r.level} atteint</small></div><button class="btn primary sm" data-act="rewardClaim" data-id="${r.id}">Je l'ai prise ✔</button></li>`).join('')}</ul>`
-            : '<p class="empty-hint">Rien à réclamer pour l\'instant. Monte de niveau.</p>'}
-          <h3>En jeu</h3>
-          ${locked.length ? `<ul class="rewards">${locked.map(r => {
-            const lv = Engine.levelOf(s, r.domain);
-            return `<li class="reward"><div><strong>${U.esc(r.text)}</strong><small>${name(r.domain)} : niveau ${lv} / ${r.level}</small>
-              <div class="xpbar sm ${r.domain === 'char' ? '' : 'dom-' + r.domain}"><span style="width:${Math.min(100, (lv / r.level) * 100).toFixed(0)}%"></span></div></div>
-              <button class="icon-btn" data-act="rewardDel" data-id="${r.id}" aria-label="Supprimer">✕</button></li>`;
-          }).join('')}</ul>` : '<p class="muted small">Aucune récompense en jeu. Ajoute-en au moins une par domaine.</p>'}
-          ${claimed.length ? `<h3>Obtenues</h3><ul class="rewards">${claimed.map(r => `<li class="reward claimed"><div><strong>${U.esc(r.text)}</strong><small>${name(r.domain)} niv. ${r.level} · le ${U.fmtDate(r.claimedTs)}</small></div></li>`).join('')}</ul>` : ''}
-        </div>
-      </section>
-
-      ${s.npc.titles.length ? `<section class="card">
-        <div class="card-head"><h2>Titres de quêtes</h2><span class="muted small">offerts par les PNJ</span></div>
-        <div class="tr-list">${s.npc.titles.map(t => `<span class="ttl on">${NPCS[t.npc]?.icon || ''} ${U.esc(t.title)} <small>${U.fmtShort(t.ts)}</small></span>`).join('')}</div>
-      </section>` : ''}
-      <section class="card">
-        <div class="card-head"><h2>Titres de niveau</h2></div>
-        ${titleRows}
-      </section>
-      <section class="card">
-        <div class="card-head"><h2>Rangs physiques</h2></div>
-        ${rankRows}
-      </section>`;
-  },
-};
-
-App.forms.reward = fd => {
-  const text = String(fd.get('text') || '').trim();
-  const level = Math.round(Number(fd.get('level')));
-  if (!text || !(level >= 2)) return;
-  App.state.rewards.push({ id: U.uid(), domain: fd.get('domain'), level, text });
-  App.commit();
-};
-App.actions.rewardIdea = el => {
-  App.state.rewards.push({ id: U.uid(), domain: el.dataset.d, level: Number(el.dataset.l), text: el.dataset.t });
-  App.commit();
-};
-App.actions.rewardClaim = el => {
-  const r = App.state.rewards.find(x => x.id === el.dataset.id);
-  if (r) { r.claimedTs = Date.now(); App.toast('<b>Récompense obtenue.</b><small>Profite, tu l\'as méritée.</small>'); App.commit(); }
-};
-App.actions.rewardDel = el => {
-  App.state.rewards = App.state.rewards.filter(x => x.id !== el.dataset.id);
-  App.commit();
+/* Profil : titres, rangs, réglages, profils */
+UI.titlesHtml = () => {
+  const s = App.state;
+  const name = d => (d === 'char' ? `${Icons.get('crown', 16)} Personnage` : `${GAME.domains[d].icon} ${GAME.domains[d].name}`);
+  const titleRows = ['char', ...GAME.domainOrder].map(d => {
+    const lv = Engine.levelOf(s, d);
+    return `<div class="title-row ${d === 'char' ? '' : 'dom-' + d}"><span class="tr-d">${name(d)}</span><div class="tr-list">${GAME.titles[d].map(([l, t]) => `<span class="ttl ${lv >= l ? 'on' : ''} ${Engine.title(d, lv) === t ? 'cur' : ''}" title="Niveau ${l}">${U.esc(t)} <small>${l}</small></span>`).join('')}</div></div>`;
+  }).join('');
+  const rankRows = Engine.activeExercises(s).map(k => {
+    const b = Engine.best(s, k);
+    const idx = b == null ? -1 : Engine.rank(k, b).index;
+    return `<div class="title-row"><span class="tr-d">${GAME.exercises[k].name}</span><div class="tr-list">${GAME.exercises[k].ranks.slice(1).map(([v, l], i) => `<span class="ttl ${idx >= i + 1 ? 'on' : ''} ${idx === i + 1 ? 'cur' : ''}">${l} <small>${Engine.fmtTest(k, v)}</small></span>`).join('')}</div></div>`;
+  }).join('');
+  const quest = s.npc.titles.length ? `<div class="title-row"><span class="tr-d">${Icons.get('quests', 16)} Quêtes</span><div class="tr-list">${s.npc.titles.map(t => `<span class="ttl on">${U.esc(t.title)}</span>`).join('')}</div></div>` : '';
+  return `<section class="card"><div class="card-head"><h2>Titres</h2></div>${titleRows}${quest}</section>
+    <section class="card"><div class="card-head"><h2>Rangs physiques</h2></div>${rankRows}</section>`;
 };
 
 /* ---------- Réglages ---------- */

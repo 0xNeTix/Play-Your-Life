@@ -161,7 +161,8 @@ const Engine = (() => {
     return s.quests[k];
   }
   function streak(s) {
-    const doneDay = k => (s.quests[k] || []).some(q => q.done);
+    const reset = s.streakResetTs || 0; // défaite contre un boss : seules les tâches faites après comptent
+    const doneDay = k => (s.quests[k] || []).some(q => q.done && (q.doneTs || 0) > reset);
     const d = new Date();
     let n = 0;
     if (!doneDay(U.dayKey(d))) d.setDate(d.getDate() - 1); // la série tient tant qu'hier est validé
@@ -181,19 +182,15 @@ const Engine = (() => {
   }
 
   /* ---------- Récompenses & déblocages ---------- */
-  function rewardUnlocked(s, r) { return levelOf(s, r.domain) >= r.level; }
-
   function unlocksBetween(s, d, from, to) {
     const out = [];
     for (const t of titlesBetween(d, from, to)) out.push({ kind: 'title', text: `Titre « ${t} »` });
     if (d !== 'char') {
       for (const m of GAME.missions) if (m.domain === d && m.minLevel > from && m.minLevel <= to) out.push({ kind: 'mission', text: `Contrat de ${NPCS[missionGiver(m)].name} : ${m.text}`, xp: m.xp });
     } else {
-      if (from < GAME.bossUnlockCharLevel && to >= GAME.bossUnlockCharLevel) out.push({ kind: 'feature', text: 'Boss de la semaine : un défi réel majeur chaque semaine' });
       const newNpc = ARCS.filter(a => a.minChar > from && a.minChar <= to).map(a => NPCS[a.npc].name);
       if (newNpc.length) out.push({ kind: 'feature', text: `De nouveaux PNJ peuvent te croiser : ${[...new Set(newNpc)].join(', ')}` });
     }
-    for (const r of s.rewards) if (r.domain === d && r.level > from && r.level <= to) out.push({ kind: 'reward', text: r.text });
     return out;
   }
 
@@ -202,9 +199,13 @@ const Engine = (() => {
     const cands = [];
     for (const [l, n] of GAME.titles[d] || []) if (l > lv) cands.push({ level: l, text: `Titre « ${n} »` });
     if (d !== 'char') for (const m of GAME.missions) if (m.domain === d && m.minLevel > lv) cands.push({ level: m.minLevel, text: `Contrat : ${m.text}` });
-    for (const r of s.rewards) if (r.domain === d && r.level > lv) cands.push({ level: r.level, text: `🎁 ${r.text}`, irl: true });
-    cands.sort((a, b) => a.level - b.level || (b.irl ? 1 : 0) - (a.irl ? 1 : 0));
+    cands.sort((a, b) => a.level - b.level);
     return cands[0] || null;
+  }
+
+  /* Contenus de la bibliothèque validés (test réussi) depuis une date */
+  function doneContents(s, since = 0) {
+    return Object.entries(s.intel.done || {}).filter(([, d]) => d.ts >= since).map(([id, d]) => ({ ...(Library.byId(id) || { id, type: 'video', theme: '', minutes: 0 }), doneTs: d.ts, score: d.score }));
   }
 
   /* ---------- PNJ : progression des étapes ---------- */
@@ -217,13 +218,18 @@ const Engine = (() => {
       case 'sessions': cur = after(s.sport.sessions).length; target = step.count; break;
       case 'runs': cur = after(s.sport.runs).length; target = step.count; break;
       case 'runKm': cur = Math.floor(after(s.sport.runs).reduce((a, r) => a + r.km, 0) * 10) / 10; target = step.value; break;
-      case 'books': cur = after(s.intel.books).length; target = step.count; break;
-      case 'learnMin': cur = after(s.intel.sessions).reduce((a, x) => a + x.minutes, 0); target = step.value; break;
+      case 'books': cur = after(s.intel.books).length + doneContents(s, since).filter(c => c.type === 'book').length; target = step.count; break;
+      case 'learnMin': cur = after(s.intel.sessions).reduce((a, x) => a + x.minutes, 0) + doneContents(s, since).reduce((a, c) => a + (c.minutes || 0), 0); target = step.value; break;
+      case 'contents': cur = doneContents(s, since).length; target = step.count; break;
+      case 'themes': cur = new Set(doneContents(s, since).map(c => c.theme)).size; target = step.count; break;
+      case 'ratings': cur = Library.myRatings(s).filter(r => r.ts >= since).length; target = step.count; break;
+      case 'propose': cur = Library.all().filter(c => c.by && c.by.id === s.id && c.ts >= since).length; target = step.count; break;
+      case 'bossWins': cur = (s.bossLog || []).filter(b => b.status === 'won' && b.ts >= since).length; target = step.count; break;
       case 'quizTiers': cur = Object.values(s.pro.quiz).reduce((a, q) => a + q.attempts.filter(t => t.passed && t.ts >= since).length, 0); target = step.count; break;
       case 'missions': cur = Object.entries(s.missions).filter(([id, m]) => m.ts >= since && (!step.domain || id.startsWith(step.domain === 'pro' ? 'pr' : step.domain.slice(0, 2)))).length; target = step.count; break;
       case 'quests': cur = Object.values(s.quests).flat().filter(q => q.done && q.doneTs >= since).length; target = step.count; break;
       case 'checkins': cur = after(s.sport.checkins).length; target = step.count; break;
-      case 'bosses': cur = Object.values(s.bosses).filter(b => b.done && b.doneTs >= since).length; target = step.count; break;
+      case 'bosses': cur = Object.values(s.bosses).filter(b => b.done && b.doneTs >= since).length + (s.bossLog || []).filter(b => b.status === 'won' && b.ts >= since).length; target = step.count; break;
       case 'streak': cur = streak(s); target = step.value; break;
       case 'weekGoals': cur = Object.values(s.sport.goalWeeks).filter(ts => ts >= since).length; target = step.count; break;
       case 'rank': {
@@ -239,8 +245,8 @@ const Engine = (() => {
         cur = keys.filter(k => testsFor(s, k).length).length; target = keys.length; break;
       }
       case 'manual': {
-        const note = arcState.manual?.[idx];
-        return { cur: note ? 1 : 0, target: 1, done: !!note, label: note ? `« ${note} »` : 'preuve à fournir', manual: true };
+        const ok = !!arcState.manual?.[idx];
+        return { cur: ok ? 1 : 0, target: 1, done: ok, label: ok ? 'fait' : 'à faire, puis à valider', manual: true };
       }
     }
     cur = Math.min(cur, target);
@@ -289,7 +295,7 @@ const Engine = (() => {
     activeExercises, resolveExo, testsFor, best, better, rank, fmtTest, checkinThisWeek,
     workouts, workoutsInWeek, weekStreak, regularity, runStats,
     quizState, bank, allMissions, missionUnlocked, missionLockLabel, missionGiver,
-    questsToday, streak, bestStreak, rewardUnlocked, unlocksBetween, nextUnlock,
-    arcProgress, availableArcs, activeArcs, publicCard,
+    questsToday, streak, bestStreak, unlocksBetween, nextUnlock,
+    arcProgress, availableArcs, activeArcs, publicCard, doneContents,
   };
 })();

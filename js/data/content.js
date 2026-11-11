@@ -111,7 +111,7 @@ const GAME = {
     checkin: 60, checkinBonusMax: 60,
     quizFail: 10, quizTier: [0, 120, 250, 450, 700, 1000],
     book: 150, sessionPerMin: 1, sessionMax: 90,
-    boss: 150, bossDiscipline: 30,
+    boss: 150, bossDiscipline: 30, contribution: 30,
   },
 
   /* Exercices de test. Rangs : seuils absolus. lowerBetter : une valeur plus basse est meilleure (rythme).

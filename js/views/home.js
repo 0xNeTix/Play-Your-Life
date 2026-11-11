@@ -6,9 +6,8 @@ Views.home = {
     const doneN = tasks.filter(q => q.done).length;
     const streak = Engine.streak(s);
     const cl = Engine.charLevel(s);
-    const wk = U.weekKey();
-    const boss = s.bosses[wk];
-    const bossOpen = cl.level >= GAME.bossUnlockCharLevel;
+    const boss = s.boss && s.boss.week === U.weekKey() ? s.boss : null;
+    const gs = Events.giftState(s);
     const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
     const weekW = Engine.workoutsInWeek(s).length;
     const goal = s.settings.weeklyGoal;
@@ -81,21 +80,33 @@ Views.home = {
             ${contracts ? `<a class="contract-link" href="#/journal">${Icons.get('target', 16)} ${contracts} contrat${contracts > 1 ? 's' : ''} en attente</a>` : ''}
           </div>
 
-          <div class="card boss ${bossOpen ? '' : 'locked'}">
-            <div class="card-head"><h2>Boss de la semaine</h2>${boss?.done ? '<span class="pill ok">Vaincu</span>' : ''}</div>
-            ${!bossOpen ? `<p class="muted small">Se débloque au niveau ${GAME.bossUnlockCharLevel} du personnage (actuel : ${cl.level}).</p>`
-            : boss ? `
+          ${boss ? (() => {
+            const def = Events.bossDef(boss);
+            const prog = Math.min(Events.bossProgress(s, boss), boss.target);
+            const left = Math.max(0, boss.deadline - Date.now());
+            const d = Math.floor(left / 86400000), h = Math.floor((left % 86400000) / 3600000);
+            return `<div class="card boss ${boss.status}">
+              <div class="card-head"><h2>Boss de la semaine</h2><span class="pill ${boss.status === 'won' ? 'ok' : ''}">${boss.status === 'won' ? 'Vaincu' : boss.status === 'lost' ? 'Perdu' : `${d ? d + ' j ' : ''}${h} h`}</span></div>
+              <div class="boss-row">
+                <div class="npc-portrait sm">${Avatar.svg(def.look, { size: 56, crop: 'face', label: def.name })}</div>
+                <div><strong class="boss-name">${U.esc(def.name)}</strong><small class="muted block">${U.esc(def.role)} · niveau ${boss.level}</small></div>
+              </div>
               <p class="boss-text">${U.esc(boss.text)}</p>
-              ${boss.done ? `<p class="muted small">Vaincu le ${U.fmtDate(boss.doneTs)} · « ${U.esc(boss.note)} »</p>` : `
-                <form data-form="bossDone" class="inline-form">
-                  <input name="note" required minlength="10" maxlength="240" placeholder="Preuve : comment l'as-tu vaincu ?">
-                  <button class="btn primary sm">Vaincu</button>
-                </form>`}`
-            : `<form data-form="boss" class="task-form">
-                <input name="text" required maxlength="120" placeholder="Un défi réel à finir avant dimanche">
-                <select name="domain" aria-label="Domaine">${UI.domainOptions('pro')}</select>
-                <button class="btn primary">Défier</button>
-              </form>`}
+              <div class="xpbar dom-${boss.domain}"><span style="width:${(prog / boss.target) * 100}%"></span></div>
+              <div class="boss-foot"><span>${U.fmtNum(prog)} / ${U.fmtNum(boss.target)}</span><span>${boss.status === 'active' ? `+${boss.xp} XP · échec : série remise à 0` : boss.status === 'won' ? `+${boss.xp} XP gagnés` : 'Série remise à zéro'}</span></div>
+            </div>`;
+          })() : `<div class="card boss idle">
+              <div class="card-head"><h2>Boss de la semaine</h2></div>
+              <p class="muted small">Aucun boss pour l'instant. Il en surgit un chaque semaine, avec une quête à ta mesure. Si tu ne la termines pas avant dimanche soir, ta série de jours repart à zéro.</p>
+            </div>`}
+
+          <div class="card gifts">
+            <div class="card-head"><h2>Récompenses</h2><span class="pill ${gs.available.length ? 'ok' : ''}">${gs.available.length} à prendre</span></div>
+            ${gs.available.length ? `<ul class="gift-list">${gs.available.map(g => `<li>${Icons.get('rewards', 20)}<div><strong>${U.esc(g.text)}</strong><small class="muted block">Offerte le ${U.fmtShort(g.ts)}</small></div><button class="btn primary sm" data-act="giftClaim" data-id="${g.id}">Prise</button></li>`).join('')}</ul>` : ''}
+            ${gs.available.length < GIFT_RULES.maxAvailable ? `
+              <div class="gift-next"><div class="xpbar sm"><span style="width:${Math.min(100, (gs.xp / gs.threshold) * 100)}%"></span></div>
+              <small class="muted">${gs.thisWeek >= GIFT_RULES.maxPerWeek ? 'Deux récompenses cette semaine : la prochaine arrivera la semaine suivante.' : `Prochaine récompense : ${U.fmtNum(Math.min(gs.xp, gs.threshold))} / ${U.fmtNum(gs.threshold)} XP`}</small></div>`
+              : '<p class="muted small">Prends d\'abord celles-ci : pas plus de deux en attente.</p>'}
           </div>
         </div>
       </section>`;
@@ -127,31 +138,15 @@ App.actions.questDone = el => {
   q.done = true;
   q.doneTs = Date.now();
   const xp = q.xp || GAME.customQuestXp;
-  if (q.domain === 'discipline') App.grant('discipline', xp + GAME.xp.questDiscipline, `Quête : ${q.text}`);
+  if (q.domain === 'discipline') App.grant('discipline', xp + GAME.xp.questDiscipline, `Tâche : ${q.text}`);
   else {
-    App.grant(q.domain, xp, `Quête : ${q.text}`);
-    App.grant('discipline', GAME.xp.questDiscipline, 'Quête accomplie');
+    App.grant(q.domain, xp, `Tâche : ${q.text}`);
+    App.grant('discipline', GAME.xp.questDiscipline, 'Tâche accomplie');
   }
   const all = Engine.questsToday(s);
   if (all.length === GAME.maxQuestsPerDay && all.every(x => x.done)) App.grant('discipline', GAME.xp.perfectDay, 'Journée parfaite');
   App.commit();
 };
-App.forms.boss = fd => {
-  const text = String(fd.get('text') || '').trim();
-  if (!text) return;
-  App.state.bosses[U.weekKey()] = { text, domain: fd.get('domain'), done: false, createdTs: Date.now() };
-  App.commit();
-};
-App.forms.bossDone = fd => {
-  const b = App.state.bosses[U.weekKey()];
-  const note = String(fd.get('note') || '').trim();
-  if (!b || b.done || note.length < 10) return;
-  Object.assign(b, { done: true, doneTs: Date.now(), note });
-  App.grant(b.domain, GAME.xp.boss, `Boss vaincu : ${b.text}`);
-  App.grant('discipline', GAME.xp.bossDiscipline, 'Boss de la semaine');
-  App.commit();
-};
-
 /* ---------- Création du personnage ---------- */
 Views.onboarding = {
   render() {
@@ -160,7 +155,7 @@ Views.onboarding = {
       <div class="onboard">
         <div class="brand big"><span class="brand-mark">${Icons.get('sword', 18)}</span><span>Play Your Life</span></div>
         <h1>Ta vie est le jeu.<br>Ton personnage, c'est toi.</h1>
-        <p class="lead">Ici, aucun XP ne s'obtient en planifiant. Tu gagnes des niveaux en faisant de vraies choses : tests physiques, séances, courses, photos hebdomadaires, tests de compétences, livres terminés, quêtes confiées par des PNJ.</p>
+        <p class="lead">Ici, aucun XP ne s'obtient en planifiant. Tu gagnes des niveaux en faisant de vraies choses : tests physiques, séances, courses, photos hebdomadaires, tests de compétences, livres et vidéos validés par un test, quêtes confiées par des PNJ.</p>
         <form data-form="onboard" class="card onboard-form">
           <div class="ob-id">
             <label class="pp-pick" title="Photo de profil (optionnelle)">
@@ -176,13 +171,26 @@ Views.onboarding = {
             </div>
           </div>
           <p class="muted small">La photo est optionnelle et reste sur ton appareil. Tu créeras aussi ton avatar à l'étape suivante.</p>
-          <label>Ton domaine professionnel
-            <select name="proDomain" data-change="obDomain">
-              <option value="it">Informatique (tests disponibles : réseau, dev, cyber, cloud, systèmes, data)</option>
-              <option value="other">Autre domaine</option>
+          <h3 class="ob-title">Ton métier</h3>
+          <label>Domaine professionnel
+            <select name="proDomain">
+              <option value="it">Informatique</option>
+              <option value="" disabled>D'autres domaines arrivent bientôt</option>
             </select>
           </label>
-          <label class="ob-other" hidden>Nom de ton domaine<input name="proDomainName" maxlength="40" placeholder="Ex. Marketing, Santé, Finance…"></label>
+          <div class="row">
+            <label>Ton poste actuel
+              <select name="currentJob" required><option value="">— Choisir —</option>${JOBS.it.map(j => `<option value="${j.id}">${U.esc(j.name)}</option>`).join('')}<option value="none">Étudiant / en reconversion</option></select>
+            </label>
+            <label>Le poste que tu vises
+              <select name="targetJob" required><option value="">— Choisir —</option>${JOBS.it.map(j => `<option value="${j.id}">${U.esc(j.name)}</option>`).join('')}</select>
+            </label>
+          </div>
+          <h3 class="ob-title">Ton esprit</h3>
+          <fieldset class="pick"><legend>Choisis 3 thèmes qui t'attirent : la bibliothèque te proposera des livres et des vidéos dessus</legend>
+            <div class="theme-pick">${THEMES.map(t => `<label class="theme-opt" style="--tc:${t.color}"><input type="checkbox" name="themes" value="${t.id}"><span>${U.esc(t.name)}</span></label>`).join('')}</div>
+          </fieldset>
+          <h3 class="ob-title">Ton corps</h3>
           <div class="row">
             <label>Test de squat
               <select name="squatUnit">
@@ -209,9 +217,6 @@ Views.onboarding = {
       </div>`;
   },
 };
-App.actions.obDomain = el => {
-  document.querySelector('.ob-other').hidden = el.value !== 'other';
-};
 App.actions.obCancel = async () => {
   const list = await Store.listProfiles();
   if (list.length) App.switchProfile(list[0].id);
@@ -221,14 +226,16 @@ App.forms.onboard = async (fd, form) => {
   const height = Math.round(Number(fd.get('height')));
   const weight = Math.round(Number(String(fd.get('weight')).replace(',', '.')) * 10) / 10;
   if (!(height >= 120 && height <= 230) || !(weight >= 30 && weight <= 300)) { App.toast('Taille ou poids invalide.', 'warn'); return; }
+  const themes = fd.getAll('themes').filter(t => THEMES.some(x => x.id === t));
+  if (themes.length !== 3) { App.toast('Choisis exactement 3 thèmes.', 'warn'); return; }
   form.querySelector('button.primary').disabled = true;
   s.id = U.uid();
   s.profile = {
     name: String(fd.get('name')).trim(),
-    proDomain: fd.get('proDomain'),
-    proDomainName: fd.get('proDomain') === 'other' ? (String(fd.get('proDomainName') || '').trim() || 'Mon métier') : GAME.proDomains.it.name,
+    proDomain: 'it',
+    proDomainName: GAME.proDomains.it.name,
     createdAt: Date.now(),
-    height, weight,
+    height, weight, themes,
     avatar: Avatar.sanitize(s, Avatar.random()),
     display: 'avatar',
   };
@@ -240,6 +247,8 @@ App.forms.onboard = async (fd, form) => {
       s.profile.display = 'photo';
     } catch (e) { App.toast('Photo ignorée : ' + U.esc(e.message), 'warn'); }
   }
+  s.pro.currentJob = JOBS.it.some(j => j.id === fd.get('currentJob')) ? fd.get('currentJob') : null;
+  s.pro.targetJob = JOBS.it.some(j => j.id === fd.get('targetJob')) ? fd.get('targetJob') : null;
   s.settings.squatUnit = fd.get('squatUnit');
   s.settings.runTest = fd.get('runTest');
   s.settings.weeklyGoal = U.clamp(Math.round(Number(fd.get('weeklyGoal')) || 3), 1, 14);

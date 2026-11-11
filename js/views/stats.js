@@ -7,7 +7,7 @@ Views.stats = {
     const exos = Engine.activeExercises(s);
     const maxLvl = Math.max(...GAME.domainOrder.map(d => Engine.domainLevel(s, d).level), 5);
     const days = Math.max(1, Math.ceil((Date.now() - s.profile.createdAt) / 86400000));
-    const recent = s.xpLog.slice().sort((a, b) => b.ts - a.ts).slice(0, 40);
+    const recent = s.xpLog.slice().sort((a, b) => b.ts - a.ts).slice(0, Views.stats.logLimit || 15);
 
     return `
       <header class="page-head">
@@ -49,6 +49,8 @@ Views.stats = {
         <div class="card"><div class="card-head"><h3>Poids</h3><span class="muted small">kg</span></div><div id="ch-weight"></div></div>
       </section>
 
+      ${UI.titlesHtml()}
+
       <section class="card">
         <details><summary><strong>Tableau des tests physiques</strong></summary>
           ${UI.table(['Date', 'Exercice', 'Résultat'], s.sport.tests.slice().sort((a, b) => b.ts - a.ts).map(t => [U.fmtDate(t.ts), GAME.exercises[t.exo].name, Engine.fmtTest(t.exo, t.value)]))}
@@ -56,8 +58,8 @@ Views.stats = {
       </section>
 
       <section class="card">
-        <div class="card-head"><h2>Journal d'XP</h2><span class="muted small">40 derniers gains</span></div>
-        ${recent.length ? `<ul class="xp-log">${recent.map(e => `<li><span class="xl-d dom-${e.domain}">${GAME.domains[e.domain].icon}</span><span class="xl-r">${U.esc(e.reason)}</span><span class="xl-t">${U.fmtShort(e.ts)}</span><strong>+${e.amount}</strong></li>`).join('')}</ul>` : '<p class="empty-hint">Aucun XP pour le moment.</p>'}
+        <div class="card-head"><h2>Journal d'XP</h2><span class="muted small">${recent.length} sur ${s.xpLog.length}</span></div>
+        ${recent.length ? `<ul class="xp-log">${recent.map(e => `<li><span class="xl-d dom-${e.domain}">${GAME.domains[e.domain].icon}</span><span class="xl-r">${U.esc(e.reason)}</span><span class="xl-t">${U.fmtShort(e.ts)}</span><strong>+${e.amount}</strong></li>`).join('')}</ul>${recent.length < s.xpLog.length ? '<button class="btn ghost" data-act="xpMore" style="margin-top:12px">Voir plus</button>' : ''}` : '<p class="empty-hint">Aucun XP pour le moment.</p>'}
       </section>`;
   },
 
@@ -102,3 +104,5 @@ Views.stats = {
     ].sort((a, b) => a.x - b.x), { color: 'var(--c-sport)', height: 180, label: 'Poids', fmt: v => `${v} kg`, emptyMsg: 'Renseigne ton poids au check-in' });
   },
 };
+
+App.actions.xpMore = () => { Views.stats.logLimit = (Views.stats.logLimit || 15) + 20; App.render(false); };

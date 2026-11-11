@@ -18,7 +18,10 @@
      weekGoals {count}               semaines où l'objectif de séances est atteint
      rank {exo, letter}              rang minimum sur un test physique
      baseline {}                     tests de référence faits (pompes, squats, tractions, gainage)
-     manual {}                       étape libre, validée avec une preuve écrite */
+     contents {count} / themes {count} contenus validés de la bibliothèque, thèmes différents
+     ratings {count} / propose {count} contenus notés, contenus proposés
+     bossWins {count}                boss de la semaine vaincus
+     manual {}                       étape libre, validée d'un clic */
 const NPCS = {
   kael:     { name: 'Maître Kael', role: 'Forgeron des corps', icon: '🔨', domain: 'sport',
     look: { face: 'square', skin: '#d39a6a', hair: 'bald', hairColor: '#a2462a', eyes: 'determined', eyeColor: '#5a3a22', brows: 'thick', mouth: 'grin', beard: 'viking', outfit: 'apron', outfitColor: '#5a4a42', bg: '#d4704c', extras: ['scar', 'sweat'] },
@@ -38,6 +41,18 @@ const NPCS = {
   voyageur: { name: 'Le Voyageur', role: 'Personne ne connaît son nom', icon: '🧭', domain: null,
     look: { face: 'oval', skin: '#b57a4e', hair: 'short', hairColor: '#9a9a9a', eyes: 'sleepy', eyeColor: '#c08a2e', brows: 'normal', mouth: 'smirk', beard: 'stubble', headwear: 'hat', headwearColor: '#3d2a1e', outfit: 'robe', outfitColor: '#1d3b44', bg: '#003440', extras: [] },
     greet: ['…Je t\'observe depuis un moment. Tu avances, mais sur un seul pied.', 'Chaque chemin mène quelque part. Les quatre ensemble mènent à toi.'] },
+  elira:    { name: 'Dame Elira', role: 'Guérisseuse du Sanctuaire', icon: '🌿', domain: 'sport',
+    look: { face: 'round', skin: '#f6c9a0', hair: 'bun', hairColor: '#ece0c4', eyes: 'happy', eyeColor: '#2f8a5a', brows: 'normal', mouth: 'smile', outfit: 'robe', outfitColor: '#2f8a5a', bg: 'forest', extras: ['blush', 'flower'] },
+    greet: ['Doucement, guerrier. Un corps qu\'on n\'écoute pas finit par crier.', 'Tu forces, tu forces… et quand est-ce que tu récupères ?'] },
+  tobias:   { name: 'Tobias', role: 'Marchand des Quatre Routes', icon: '💰', domain: 'pro',
+    look: { face: 'chubby', skin: '#d39a6a', hair: 'sidepart', hairColor: '#2b2220', eyes: 'wink', eyeColor: '#5a3a22', brows: 'raised', mouth: 'grin', beard: 'mustache', outfit: 'suit', outfitColor: '#450c07', bg: '#b8862f', extras: ['necklace'] },
+    greet: ['Approche, approche ! Je n\'achète que ce qui se prouve.', 'Un savoir-faire sans preuve ne vaut pas une pièce de cuivre.'] },
+  maelle:   { name: 'Maëlle', role: 'Barde des Mille Récits', icon: '🎶', domain: 'intel',
+    look: { face: 'oval', skin: '#eab48a', hair: 'ponytail', hairColor: '#e86aa6', eyes: 'big', eyeColor: '#2f6db5', brows: 'raised', mouth: 'laugh', outfit: 'varsity', outfitColor: '#7b4fc9', bg: 'sunset', extras: ['freckles', 'stars'] },
+    greet: ['Ah, un nouveau visage ! Dis-moi, quelle est la dernière chose qui t\'a émerveillé ?', 'Une idée qu\'on ne raconte pas est une chanson qu\'on ne chante pas.'] },
+  nox:      { name: 'Nox', role: 'Ton ombre', icon: '🌑', domain: 'discipline',
+    look: { face: 'square', skin: '#6a4128', hair: 'spiky', hairColor: '#2b2220', eyes: 'determined', eyeColor: '#1b1b2f', brows: 'angry', mouth: 'smirk', beard: 'stubble', headwear: 'hood', headwearColor: '#1f1f1f', outfit: 'hoodie', outfitColor: '#1f1f1f', bg: '#16213e', extras: ['eyepatch'] },
+    greet: ['Je suis ce que tu deviens quand tu abandonnes. Prouve-moi que j\'ai tort.', 'Chaque jour que tu sautes, je grandis. Tu le sens, non ?'] },
 };
 
 const ARCS = [
@@ -57,8 +72,8 @@ const ARCS = [
     intro: 'Des milliers de pages, et personne pour les ouvrir. Prouve-moi que tu sais encore apprendre, et je t\'ouvrirai la réserve.',
     outro: 'Tu as l\'œil de ceux qui comprennent ce qu\'ils lisent. Voici la clé de la réserve.',
     steps: [
-      { type: 'learnMin', value: 120, text: 'Cumule 2 h d\'apprentissage' },
-      { type: 'books', count: 1, text: 'Termine un livre (avec tes 3 enseignements)' },
+      { type: 'learnMin', value: 120, text: 'Cumule 2 h de lecture ou de vidéos validées' },
+      { type: 'books', count: 1, text: 'Valide un livre de la bibliothèque' },
       { type: 'level', domain: 'intel', value: 3, text: 'Atteins Esprit niveau 3' },
     ],
     reward: { xp: { intel: 250, pro: 50 }, title: 'Lecteur de la Réserve' },
@@ -126,7 +141,7 @@ const ARCS = [
     intro: 'Un savoir qu\'on garde pour soi finit par moisir. Lis, puis transmets.',
     outro: 'Tu ne lis plus seulement : tu transmets. Ma bibliothèque n\'a plus de portes fermées pour toi.',
     steps: [
-      { type: 'books', count: 3, text: 'Termine 3 livres' },
+      { type: 'books', count: 3, text: 'Valide 3 livres de la bibliothèque' },
       { type: 'manual', text: 'Explique à quelqu\'un, en vrai, un concept appris dans ces livres' },
       { type: 'level', domain: 'intel', value: 6, text: 'Atteins Esprit niveau 6' },
     ],
@@ -179,6 +194,71 @@ const ARCS = [
       { type: 'manual', text: 'Écris une lettre à toi-même, à ouvrir dans un an' },
     ],
     reward: { xp: { sport: 400, intel: 400, pro: 400, discipline: 400 }, title: 'Celui qui devient' },
+  },
+  {
+    id: 'elira-1', npc: 'elira', minChar: 2, title: 'Le repos du guerrier',
+    intro: 'La force ne vient pas de l\'effort seul, mais de l\'effort suivi du repos. Montre-moi que tu sais tenir un rythme, pas seulement un sprint.',
+    outro: 'Voilà. Régulier comme une marée. Ton corps te remerciera longtemps.',
+    steps: [
+      { type: 'weekGoals', count: 2, text: 'Atteins ton objectif de séances 2 semaines' },
+      { type: 'checkins', count: 2, text: 'Fais 2 check-ins physiques' },
+      { type: 'manual', text: 'Dors au moins 7 h pendant 5 nuits de suite' },
+    ],
+    reward: { xp: { sport: 250, discipline: 100 }, title: 'Protégé d\'Elira' },
+  },
+  {
+    id: 'tobias-1', npc: 'tobias', minChar: 2, title: 'Le prix du savoir-faire',
+    intro: 'J\'ai un client qui paie cher les gens compétents. Mais il veut des preuves, pas des promesses. Tu en as ?',
+    outro: 'Marché conclu ! Tu vaux plus cher qu\'hier, et ça se voit.',
+    steps: [
+      { type: 'quizTiers', count: 2, text: 'Valide 2 paliers de test Métier' },
+      { type: 'missions', count: 1, domain: 'pro', text: 'Accomplis un contrat Métier' },
+      { type: 'contents', count: 2, text: 'Valide 2 contenus de la bibliothèque' },
+    ],
+    reward: { xp: { pro: 300, intel: 100 }, title: 'Associé de Tobias' },
+  },
+  {
+    id: 'maelle-1', npc: 'maelle', minChar: 1, title: 'Le chant des trois savoirs',
+    intro: 'Je compose une ballade sur trois idées qui changent une vie. Il me manque… les trois idées. Va les chercher pour moi.',
+    outro: 'Quelle matière ! J\'en ferai trois couplets, et ton nom sera dans le refrain.',
+    steps: [
+      { type: 'contents', count: 3, text: 'Valide 3 contenus de la bibliothèque' },
+      { type: 'themes', count: 3, text: 'Explore 3 thèmes différents' },
+      { type: 'ratings', count: 3, text: 'Note 3 contenus que tu as validés' },
+    ],
+    reward: { xp: { intel: 300 }, title: 'Muse de Maëlle' },
+  },
+  {
+    id: 'maelle-2', npc: 'maelle', minChar: 4, after: 'maelle-1', title: 'La voix du royaume',
+    intro: 'Tu as écouté les récits des autres. Il est temps d\'ajouter le tien à la bibliothèque.',
+    outro: 'On racontera ce que tu as partagé bien après nous. C\'est ça, une œuvre.',
+    steps: [
+      { type: 'contents', count: 8, text: 'Valide 8 contenus de la bibliothèque' },
+      { type: 'propose', count: 1, text: 'Propose un contenu avec son résumé et son test' },
+      { type: 'level', domain: 'intel', value: 5, text: 'Atteins Esprit niveau 5' },
+    ],
+    reward: { xp: { intel: 500, discipline: 100 }, title: 'Voix du Royaume' },
+  },
+  {
+    id: 'nox-1', npc: 'nox', minChar: 2, title: 'L\'ombre qui te suit',
+    intro: 'Un boss rôde chaque semaine. Tu peux le fuir, et je te remplace. Ou tu peux le vaincre.',
+    outro: 'Tch. Tu tiens debout. Je recule d\'un pas… mais je ne pars pas.',
+    steps: [
+      { type: 'bossWins', count: 1, text: 'Vaincs un boss de la semaine' },
+      { type: 'streak', value: 5, text: 'Tiens une série de 5 jours' },
+      { type: 'quests', count: 15, text: 'Accomplis 15 tâches' },
+    ],
+    reward: { xp: { discipline: 300 }, title: 'Chasseur d\'ombre' },
+  },
+  {
+    id: 'nox-2', npc: 'nox', minChar: 5, after: 'nox-1', title: 'Face à face',
+    intro: 'Quatre boss. Trois semaines sans faillir. Si tu y arrives, je n\'aurai plus rien à te dire.',
+    outro: '…Je n\'ai plus de prise sur toi. Garde mon manteau : désormais, c\'est toi l\'ombre que les autres craignent.',
+    steps: [
+      { type: 'bossWins', count: 4, text: 'Vaincs 4 boss de la semaine' },
+      { type: 'streak', value: 21, text: 'Tiens une série de 21 jours' },
+    ],
+    reward: { xp: { discipline: 700, sport: 100, pro: 100, intel: 100 }, title: 'Sans Ombre' },
   },
 ];
 

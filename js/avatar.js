@@ -26,6 +26,14 @@ const Avatar = (() => {
     cloth: ['#450c07', '#d4704c', '#ffbe69', '#0bc5d2', '#003440', '#16213e', '#2f8a5a', '#7b4fc9', '#e86aa6', '#f2f2f2', '#3a3a3a', '#9aa3ad'],
     bg: [
       { c: '#16213e' }, { c: '#003440' }, { c: '#450c07' }, { c: '#d4704c' }, { c: '#0bc5d2' }, { c: '#3b2a63' }, { c: '#1f5c3a' }, { c: '#ffbe69' },
+      { c: '#1f1f1f' }, { c: '#f3e6d3' }, { c: '#7a1e10' }, { c: '#234a6d' }, { c: '#5a3d6b' }, { c: '#2a6f6a' },
+      { c: 'dots', label: 'Pois' }, { c: 'stripes', label: 'Rayures' }, { c: 'checker', label: 'Damier' }, { c: 'waves', label: 'Vagues' },
+      { c: 'sunset', unlock: { xp: 2000 }, label: 'Coucher de soleil', r: 'r' },
+      { c: 'ocean', unlock: { domain: 'intel', level: 3 }, label: 'Grand large', r: 'r' },
+      { c: 'forest', unlock: { arc: 'elira-1' }, label: 'Sous-bois', r: 'r' },
+      { c: 'mountains', unlock: { domain: 'sport', level: 5 }, label: 'Sommets', r: 'e' },
+      { c: 'city', unlock: { arc: 'maelle-2' }, label: 'Ville la nuit', r: 'e' },
+      { c: 'dojo', unlock: { streak: 14 }, label: 'Dojo', r: 'e' },
       { c: '#b8862f', unlock: { domain: 'char', level: 5 }, label: 'Or terni', r: 'r' },
       { c: '#e86aa6', unlock: { domain: 'discipline', level: 4 }, label: 'Aube rose', r: 'r' },
       { c: 'aurora', unlock: { arc: 'lyra-2' }, label: 'Aurore boréale', r: 'e' },
@@ -34,7 +42,7 @@ const Avatar = (() => {
       { c: 'starfield', unlock: { arc: 'voyageur-2' }, label: 'Voûte étoilée', r: 'l' },
     ],
   };
-  const SPECIAL_BG = ['aurora', 'ember', 'royal', 'starfield'];
+  const SPECIAL_BG = ['aurora', 'ember', 'royal', 'starfield', 'dots', 'stripes', 'checker', 'waves', 'sunset', 'ocean', 'forest', 'mountains', 'city', 'dojo'];
 
   const parts = {
     face: { label: 'Visage', options: [['round', 'Rond'], ['oval', 'Ovale'], ['square', 'Carré'], ['chubby', 'Joues rondes']] },
@@ -53,12 +61,16 @@ const Avatar = (() => {
       ['scholar', 'Pull à col', { domain: 'intel', level: 2 }, 'r'], ['leather', 'Blouson de cuir', { xp: 2500 }, 'r'], ['gi', 'Kimono d\'entraînement', { quests: 30 }, 'r'],
       ['suit', 'Costume', { domain: 'pro', level: 4 }, 'r'], ['apron', 'Tablier de forge', { arc: 'kael-1' }, 'r'],
       ['robe', 'Robe du temple', { arc: 'mira-2' }, 'e'], ['armor', 'Armure', { arc: 'brann-2' }, 'e'], ['cape', 'Cape royale', { arc: 'voyageur-1' }, 'l']] },
-    frame: { label: 'Cadre', options: [['none', 'Aucun'], ['iron', 'Fer'], ['bronze', 'Bronze', { xp: 1500 }, 'r'], ['silver', 'Argent', { xp: 6000 }, 'r'],
-      ['runic', 'Runique', { arc: 'voyageur-1' }, 'e'], ['gold', 'Or', { xp: 15000 }, 'e'], ['legend', 'Légende', { xp: 40000 }, 'l']] },
+    frame: { label: 'Cadre', options: [['none', 'Aucun'], ['iron', 'Fer'], ['wood', 'Bois'], ['rope', 'Cordage'], ['ink', 'Encre'],
+      ['bronze', 'Bronze', { xp: 1500 }, 'r'], ['nature', 'Feuillage', { arc: 'elira-1' }, 'r'], ['frost', 'Givre', { xp: 3500 }, 'r'], ['ember', 'Braise', { streak: 10 }, 'r'], ['silver', 'Argent', { xp: 6000 }, 'r'],
+      ['runic', 'Runique', { arc: 'voyageur-1' }, 'e'], ['neon', 'Néon', { xp: 10000 }, 'e'], ['shadow', 'Ombre', { arc: 'nox-2' }, 'e'], ['gold', 'Or', { xp: 15000 }, 'e'],
+      ['royal', 'Royal', { xp: 30000 }, 'l'], ['legend', 'Légende', { xp: 40000 }, 'l']] },
     pose: { label: 'Geste', options: [['none', 'Aucun'], ['hands', 'Mains levées']] },
   };
-  const extras = [['blush', 'Joues roses'], ['freckles', 'Taches de rousseur'], ['sweat', 'Goutte de sueur'], ['bandage', 'Pansement'],
-    ['earring', 'Boucle d\'oreille', { xp: 4000 }, 'r'], ['scar', 'Cicatrice', { domain: 'sport', level: 5 }, 'r'], ['warpaint', 'Peinture de guerre', { arc: 'kael-2' }, 'e']];
+  const extras = [['blush', 'Joues roses'], ['freckles', 'Taches de rousseur'], ['mole', 'Grain de beauté'], ['sweat', 'Goutte de sueur'], ['bandage', 'Pansement'],
+    ['piercing', 'Piercing au nez'], ['scarf', 'Écharpe'], ['flower', 'Fleur à l\'oreille'], ['necklace', 'Chaîne'],
+    ['headphones', 'Casque audio', { xp: 3000 }, 'r'], ['tattoo', 'Tatouage', { streak: 14 }, 'r'], ['earring', 'Boucle d\'oreille', { xp: 4000 }, 'r'], ['scar', 'Cicatrice', { domain: 'sport', level: 5 }, 'r'],
+    ['medal', 'Médaille', { domain: 'sport', level: 8 }, 'e'], ['eyepatch', 'Cache-œil', { arc: 'nox-1' }, 'e'], ['stars', 'Étincelles', { arc: 'maelle-1' }, 'e'], ['warpaint', 'Peinture de guerre', { arc: 'kael-2' }, 'e']];
 
   const defaults = () => ({
     face: 'round', skin: colors.skin[1], hair: 'short', hairColor: colors.hair[2], eyes: 'normal', eyeColor: colors.eye[0],
@@ -285,6 +297,16 @@ const Avatar = (() => {
     if (bg === 'aurora') return `<defs><linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1b3a"/><stop offset=".45" stop-color="#0b6f7a"/><stop offset="1" stop-color="#3b2a63"/></linearGradient></defs><rect width="200" height="200" fill="url(#${id}a)"/><path d="M-10 70 Q50 30 100 60 T210 40 V90 Q150 70 100 96 T-10 100Z" fill="#0bc5d2" opacity=".25"/><path d="M-10 40 Q60 10 110 34 T210 20 V50 Q150 36 100 60 T-10 64Z" fill="#a77be0" opacity=".2"/>`;
     if (bg === 'ember') return `<defs><radialGradient id="${id}a" cx=".5" cy=".75" r=".75"><stop offset="0" stop-color="#d4704c"/><stop offset=".6" stop-color="#7a1e10"/><stop offset="1" stop-color="#2a0603"/></radialGradient></defs><rect width="200" height="200" fill="url(#${id}a)"/><path d="${rays}" fill="#ffbe69" opacity=".07"/><g fill="#ffbe69">${STARS.map(([x, y], i) => `<circle cx="${x}" cy="${y + 30}" r="${1 + (i % 3) * .6}" opacity="${.4 + (i % 4) * .15}"/>`).join('')}</g>`;
     if (bg === 'royal') return `<rect width="200" height="200" fill="#3a0905"/><path d="${rays}" fill="#ffbe69" opacity=".16"/><circle cx="100" cy="120" r="80" fill="#ffbe69" opacity=".08"/>`;
+    if (bg === 'dots') { let d = ''; for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++) d += `<circle cx="${12 + x * 24 + (y % 2) * 12}" cy="${12 + y * 24}" r="4"/>`; return `<rect width="200" height="200" fill="#16213e"/><g fill="#fff" opacity=".13">${d}</g>`; }
+    if (bg === 'stripes') { let d = ''; for (let i = -8; i < 12; i++) d += `M${i * 28} 210 L${i * 28 + 210} 0 `; return `<rect width="200" height="200" fill="#450c07"/><path d="${d}" stroke="#ffbe69" stroke-opacity=".16" stroke-width="12" fill="none"/>`; }
+    if (bg === 'checker') { let d = ''; for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if ((x + y) % 2) d += `M${x * 25} ${y * 25}h25v25h-25z `; return `<rect width="200" height="200" fill="#003440"/><path d="${d}" fill="#0bc5d2" opacity=".14"/>`; }
+    if (bg === 'waves') { let d = ''; for (let y = 0; y < 9; y++) d += `M-10 ${20 + y * 24} q15 -12 30 0 t30 0 t30 0 t30 0 t30 0 t30 0 t30 0 `; return `<rect width="200" height="200" fill="#234a6d"/><path d="${d}" stroke="#fff" stroke-opacity=".14" stroke-width="3" fill="none"/>`; }
+    if (bg === 'sunset') return `<defs><linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b1055"/><stop offset=".55" stop-color="#d4704c"/><stop offset="1" stop-color="#ffbe69"/></linearGradient></defs><rect width="200" height="200" fill="url(#${id}a)"/><circle cx="100" cy="150" r="52" fill="#ffe3a8" opacity=".85"/><path d="M0 150 H200 M20 164 H180 M40 178 H160" stroke="#d4704c" stroke-width="4" opacity=".5"/>`;
+    if (bg === 'ocean') return `<defs><linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fd6e0"/><stop offset=".45" stop-color="#0b8a96"/><stop offset="1" stop-color="#052a33"/></linearGradient></defs><rect width="200" height="200" fill="url(#${id}a)"/><path d="M-10 96 q25 -14 50 0 t50 0 t50 0 t50 0 t50 0 V210 H-10Z" fill="#052a33" opacity=".35"/><path d="M-10 130 q25 -14 50 0 t50 0 t50 0 t50 0 t50 0 V210 H-10Z" fill="#052a33" opacity=".4"/><circle cx="156" cy="40" r="16" fill="#fff" opacity=".7"/>`;
+    if (bg === 'forest') return `<defs><linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f8f5c"/><stop offset="1" stop-color="#0a2416"/></linearGradient></defs><rect width="200" height="200" fill="url(#${id}a)"/><g fill="#0a2416" opacity=".55"><path d="M10 200 L30 90 L50 200Z M-14 200 L4 120 L22 200Z M150 200 L172 80 L194 200Z M178 200 L196 110 L214 200Z M60 200 L74 130 L88 200Z M118 200 L132 126 L146 200Z"/></g><g fill="#ffe3a8" opacity=".5"><circle cx="60" cy="50" r="2"/><circle cx="140" cy="36" r="2"/><circle cx="100" cy="64" r="1.5"/><circle cx="30" cy="30" r="1.5"/></g>`;
+    if (bg === 'mountains') return `<defs><linearGradient id="${id}a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#233a5e"/><stop offset="1" stop-color="#9fb7d9"/></linearGradient></defs><rect width="200" height="200" fill="url(#${id}a)"/><path d="M-20 200 L50 70 L110 200Z M80 200 L150 54 L230 200Z" fill="#1b2a44"/><path d="M50 70 L64 96 L52 90 L42 100 L36 96Z M150 54 L166 86 L152 78 L142 92 L134 84Z" fill="#fff"/><path d="M20 200 L92 130 L160 200Z" fill="#111c30"/>`;
+    if (bg === 'city') { let w = ''; for (let i = 0; i < 26; i++) w += `<rect x="${12 + (i * 37) % 180}" y="${78 + (i * 53) % 110}" width="5" height="6"/>`; return `<rect width="200" height="200" fill="#0b1026"/><circle cx="160" cy="34" r="14" fill="#f3e6d3" opacity=".8"/><path d="M0 200 V110 H28 V84 H56 V126 H78 V70 H112 V118 H134 V92 H166 V130 H200 V200Z" fill="#141b3d"/><g fill="#ffbe69" opacity=".7">${w}</g>`; }
+    if (bg === 'dojo') return `<rect width="200" height="200" fill="#f3e6d3"/><circle cx="100" cy="92" r="62" fill="#b3261e"/><path d="M0 170 H200 V200 H0Z" fill="#450c07"/><path d="M0 170 H200" stroke="#1b1b2f" stroke-width="3"/>`;
     if (bg === 'starfield') return `<defs><radialGradient id="${id}a" cx=".5" cy=".4" r=".8"><stop offset="0" stop-color="#1d2a5a"/><stop offset="1" stop-color="#05070f"/></radialGradient></defs><rect width="200" height="200" fill="url(#${id}a)"/><g fill="#fff">${STARS.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${.8 + (i % 3) * .5}" opacity="${.5 + (i % 3) * .2}"/>`).join('')}</g><path d="M150 40 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2z" fill="#ffe3a8"/>`;
     return `<rect width="200" height="200" fill="${bg}"/><path d="${rays}" fill="#fff" opacity=".08"/>`;
   }
@@ -316,6 +338,10 @@ const Avatar = (() => {
         <path d="M87 124 V160 Q100 168 113 160 V124 Z" ${st(c.skin)}/>
         <path d="M88 150 Q100 156 112 150" fill="none" stroke="${O}" stroke-width="2" opacity=".25"/>
         ${outfitFront(c.outfit, c.outfitColor, c.skin)}
+        ${ex.has('necklace') ? `<path d="M86 156 Q100 180 114 156" fill="none" stroke="${O}" stroke-width="5" stroke-linecap="round"/><path d="M86 156 Q100 180 114 156" fill="none" stroke="#ffbe69" stroke-width="2.5" stroke-linecap="round"/><circle cx="100" cy="171" r="5" ${st('#ffbe69', 2.5)}/>` : ''}
+        ${ex.has('medal') ? `<path d="M88 157 L100 180 L112 157" fill="none" stroke="${O}" stroke-width="8" stroke-linejoin="round"/><path d="M88 157 L100 180" stroke="#b3261e" stroke-width="4.5"/><path d="M112 157 L100 180" stroke="#2f6db5" stroke-width="4.5"/><circle cx="100" cy="186" r="9" ${st('#ffbe69', 3)}/><path d="M100 181 l1.6 3.4 3.6 .4 -2.7 2.5 .8 3.6 -3.3 -1.9 -3.3 1.9 .8 -3.6 -2.7 -2.5 3.6 -.4z" fill="#c48f45"/>` : ''}
+        ${ex.has('scarf') ? `<path d="M78 146 Q100 164 122 146 L126 160 Q100 180 74 160 Z" ${st('#d4704c')}/><path d="M106 166 L118 198 L102 200 L96 170 Z" ${st('#d4704c')}/><path d="M104 180 l12 -2 M106 190 l12 -2" stroke="${O}" stroke-width="2" opacity=".35"/>` : ''}
+        ${ex.has('headphones') ? `<path d="M68 160 Q100 198 132 160" fill="none" stroke="${O}" stroke-width="9" stroke-linecap="round"/><path d="M68 160 Q100 198 132 160" fill="none" stroke="#3a3a3a" stroke-width="5" stroke-linecap="round"/><ellipse cx="68" cy="158" rx="9" ry="13" ${st('#3a3a3a')}/><ellipse cx="132" cy="158" rx="9" ry="13" ${st('#3a3a3a')}/><ellipse cx="68" cy="158" rx="4" ry="7" fill="#0bc5d2"/><ellipse cx="132" cy="158" rx="4" ry="7" fill="#0bc5d2"/>` : ''}
         ${ears(c.face, c.skin)}
         ${head(c.face, c.skin)}
         ${ex.has('blush') ? '<ellipse cx="70" cy="116" rx="9" ry="5" fill="#ff6b6b" opacity=".35"/><ellipse cx="130" cy="116" rx="9" ry="5" fill="#ff6b6b" opacity=".35"/>' : ''}
@@ -328,10 +354,16 @@ const Avatar = (() => {
         ${mouth(c.mouth)}
         ${glasses(c.glasses)}
         ${ex.has('bandage') ? `<g transform="rotate(-20 100 92)"><rect x="90" y="88" width="20" height="9" rx="3" ${st('#f3e6d3', 2.5)}/><path d="M97 90 V95 M103 90 V95" stroke="${O}" stroke-width="1.5" opacity=".4"/></g>` : ''}
+        ${ex.has('mole') ? `<circle cx="118" cy="122" r="2.4" fill="${O}" opacity=".8"/>` : ''}
+        ${ex.has('piercing') ? `<circle cx="107" cy="115" r="3.2" fill="none" stroke="${O}" stroke-width="3.5"/><circle cx="107" cy="115" r="3.2" fill="none" stroke="#d9e2e4" stroke-width="1.6"/>` : ''}
+        ${ex.has('tattoo') ? `<path d="M60 98 q5 6 0 13 M66 102 q4 5 0 10 M57 108 q-3 5 1 10" fill="none" stroke="#1b3a4a" stroke-width="2.6" stroke-linecap="round" opacity=".85"/>` : ''}
+        ${ex.has('eyepatch') ? `<path d="M54 82 L146 104" stroke="${O}" stroke-width="3.5" stroke-linecap="round"/><path d="M105 86 Q118 80 131 88 Q134 104 118 109 Q104 106 105 86 Z" ${st('#1b1b2f', 3)}/>` : ''}
         ${ex.has('scar') ? `<path d="M124 104 L134 124 M126 110 l6 -3 M129 117 l6 -3" stroke="#a83a3a" stroke-width="2.5" stroke-linecap="round" fill="none"/>` : ''}
         ${ex.has('earring') ? `<circle cx="${100 - (HEAD_RX[c.face] || 46) - 2}" cy="114" r="4" ${st('#ffbe69', 2.5)}/>` : ''}
         ${hideHair ? '' : hairFront(hairFrontStyle, c.hairColor)}
         ${headwearFront(c.headwear, c.headwearColor)}
+        ${ex.has('flower') ? `<g transform="translate(${100 + (HEAD_RX[c.face] || 46) - 2} 84)"><g ${st('#e86aa6', 2.2)}><circle cx="0" cy="-7" r="5"/><circle cx="6.6" cy="-2.2" r="5"/><circle cx="4.1" cy="5.7" r="5"/><circle cx="-4.1" cy="5.7" r="5"/><circle cx="-6.6" cy="-2.2" r="5"/></g><circle r="4" ${st('#ffbe69', 2)}/></g>` : ''}
+        ${ex.has('stars') ? `<g fill="#ffe3a8" stroke="${O}" stroke-width="1.5" stroke-linejoin="round"><path d="M30 44 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/><path d="M168 34 l2.4 6.4 6.4 2.4 -6.4 2.4 -2.4 6.4 -2.4 -6.4 -6.4 -2.4 6.4 -2.4z"/><path d="M176 98 l1.8 4.8 4.8 1.8 -4.8 1.8 -1.8 4.8 -1.8 -4.8 -4.8 -1.8 4.8 -1.8z"/><path d="M22 104 l1.6 4.2 4.2 1.6 -4.2 1.6 -1.6 4.2 -1.6 -4.2 -4.2 -1.6 4.2 -1.6z"/></g>` : ''}
         ${ex.has('sweat') ? `<path d="M138 64 Q132 74 138 78 Q144 74 138 64 Z" ${st('#9fe3f0', 2.5)}/>` : ''}
         ${c.pose === 'hands' ? hand(34, 140, c.skin, sleeve, false) + hand(166, 140, c.skin, sleeve, true) : ''}
       </g>

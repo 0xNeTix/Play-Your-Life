@@ -71,6 +71,10 @@ const LocalAdapter = (() => {
     getPhoto: id => tx('readonly', s => s.get(id)).then(r => (r ? r.dataUrl : null)),
     delPhoto: id => tx('readwrite', s => s.delete(id)),
     allPhotos: profileId => tx('readonly', s => (profileId ? s.index('profileId').getAll(profileId) : s.getAll())).then(r => r || []),
+    /* Données communes à tous les joueurs (bibliothèque de contenus, notes).
+       En local : partagées entre les profils de l'appareil. Avec un serveur : une table commune. */
+    async loadShared(key) { return readJSON('pyl.shared.' + key, null); },
+    async saveShared(key, value) { localStorage.setItem('pyl.shared.' + key, JSON.stringify(value)); },
     /* Préférences propres à l'appareil (pas synchronisées) */
     getActive() { try { return localStorage.getItem('pyl.active'); } catch (e) { return null; } },
     setActive(id) { try { id ? localStorage.setItem('pyl.active', id) : localStorage.removeItem('pyl.active'); } catch (e) { /* rien */ } },
@@ -89,11 +93,15 @@ const Store = (() => {
     xpLog: [],                // { id, ts, domain, amount, reason, ref? }
     sport: { tests: [], checkins: [], sessions: [], runs: [], goalWeeks: {} },
     pro: { quiz: {}, achievements: [] },
-    intel: { books: [], sessions: [] },
+    intel: { books: [], sessions: [], done: {}, locks: {} }, // done : contenus validés { id: { ts, score } }
     missions: {},             // missionId -> { ts, note }
     quests: {},               // dayKey -> [ { id, text, domain, xp, done, doneTs } ]
-    bosses: {},               // weekKey -> { text, domain, done, doneTs, note }
-    rewards: [],              // { id, domain, level, text, claimedTs }
+    bosses: {},               // ancien système (boss saisis à la main)
+    rewards: [],              // ancien système (récompenses saisies à la main)
+    boss: null,               // boss de la semaine : { week, type, domain, kind, target, text, xp, spawnTs, deadline, status }
+    bossLog: [],              // boss passés : { week, type, domain, status, ts }
+    streakResetTs: 0,         // une défaite contre un boss remet la série à zéro
+    gifts: { list: [], lastTs: 0 }, // récompenses offertes : { id, ts, text, domain, claimedTs }
     npc: { arcs: {}, encounters: {}, lastTs: 0, titles: [] },
     cosmetics: { seen: null }, // objets d'avatar déjà annoncés
     friends: [],
@@ -104,7 +112,7 @@ const Store = (() => {
   function migrate(raw) {
     const d = fresh();
     const s = Object.assign(d, raw);
-    for (const k of ['settings', 'sport', 'pro', 'intel', 'npc', 'cosmetics']) s[k] = Object.assign(fresh()[k], raw[k] || {});
+    for (const k of ['settings', 'sport', 'pro', 'intel', 'npc', 'cosmetics', 'gifts']) s[k] = Object.assign(fresh()[k], raw[k] || {});
     s.version = SCHEMA_VERSION;
     return s;
   }
@@ -169,6 +177,8 @@ const Store = (() => {
       saveTimer = setTimeout(run, 150);
     },
     async deleteProfile(id) { await adapter.deleteProfile(id); if (adapter.getActive() === id) adapter.setActive(null); },
+    loadShared: key => adapter.loadShared(key),
+    saveShared: (key, value) => adapter.saveShared(key, value),
     putPhoto: (state, id, dataUrl) => adapter.putPhoto(state.id, id, dataUrl),
     getPhoto: id => adapter.getPhoto(id),
     delPhoto: id => adapter.delPhoto(id),

@@ -28,11 +28,9 @@ Views.journal = {
           <li class="${step.done ? 'done' : ''}">
             <span class="as-check">${step.done ? '✓' : i + 1}</span>
             <div class="as-main"><div>${U.esc(step.text)}</div>
-              ${step.manual && !step.done && mode === 'active' ? `
-                <form data-form="arcManual" data-id="${arc.id}" data-step="${i}" class="inline-form">
-                  <input name="note" required minlength="10" maxlength="240" placeholder="Preuve : qu'as-tu fait ?">
-                  <button class="btn primary sm">Valider</button>
-                </form>` : `<small class="muted">${U.esc(step.label)}</small>`}
+              ${step.manual && !step.done && mode === 'active'
+                ? `<button class="btn primary sm as-btn" data-act="arcManual" data-id="${arc.id}" data-step="${i}">Je l'ai fait</button>`
+                : `<small class="muted">${U.esc(step.label)}</small>`}
               ${!step.manual && !step.done && step.target > 1 ? `<div class="xpbar sm"><span style="width:${(step.cur / step.target) * 100}%"></span></div>` : ''}
             </div>
           </li>`).join('')}</ol>
@@ -79,12 +77,11 @@ Views.journal = {
   },
 };
 
-App.forms.arcManual = (fd, form) => {
-  const st = App.state.npc.arcs[form.dataset.id];
-  const note = String(fd.get('note') || '').trim();
-  if (!st || st.status !== 'active' || note.length < 10) return;
+App.actions.arcManual = el => {
+  const st = App.state.npc.arcs[el.dataset.id];
+  if (!st || st.status !== 'active') return;
   st.manual = st.manual || {};
-  st.manual[form.dataset.step] = note;
+  st.manual[el.dataset.step] = Date.now();
   App.commit();
 };
 App.actions.arcTalk = el => {
