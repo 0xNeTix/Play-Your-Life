@@ -102,7 +102,7 @@ Views.settings = {
         <div class="card">
           <div class="card-head"><h2>Ma carte de joueur</h2><span class="muted small">aperçu</span></div>
           <div class="pcard-wrap">${UI.playerCard(Engine.publicCard(s), { photoUrl: s.profile.display === 'photo' ? App.ppUrl : null })}</div>
-          <p class="muted small">Sa couleur évolue avec ton niveau : Cuivre (1–3), Argent (4–6), Or (7–9), Rubis (10–14), Légende (15+). Tes amis voient ta carte avec ton avatar, jamais ta photo.</p>
+          <p class="muted small">Sa couleur évolue avec ton niveau : Cuivre (1–3), Argent (4–6), Or (7–9), Rubis (10–14), Légende (15+). Ta photo n'apparaît sur ta carte partagée que si tu l'affiches et que tu l'autorises ci-dessous.</p>
         </div>
         <div class="card">
           <div class="card-head"><h2>Apparence</h2></div>
@@ -142,6 +142,9 @@ Views.settings = {
               <label>Séances par semaine<input name="weeklyGoal" type="number" min="1" max="14" value="${s.settings.weeklyGoal}" required></label>
               <label>Thème${sel('theme', s.settings.theme, [['auto', 'Système'], ['dark', 'Sombre'], ['light', 'Clair']])}</label>
               <label>Sons${sel('sound', s.settings.sound === false ? 'off' : 'on', [['on', 'Activés'], ['off', 'Coupés']])}</label>
+            </div>
+            <div class="row">
+              <label>Photo sur ma carte partagée${sel('sharePhoto', s.settings.sharePhoto === false ? 'off' : 'on', [['on', 'Oui, si je l’affiche'], ['off', 'Non, avatar seulement']])}</label>
             </div>
             <button class="btn primary">Enregistrer</button>
           </form>
@@ -219,6 +222,7 @@ App.forms.settings = fd => {
   s.settings.weeklyGoal = U.clamp(Math.round(Number(fd.get('weeklyGoal')) || 3), 1, 14);
   s.settings.theme = fd.get('theme');
   s.settings.sound = fd.get('sound') !== 'off';
+  s.settings.sharePhoto = fd.get('sharePhoto') !== 'off';
   App.applyTheme();
   App.toast('Réglages enregistrés.');
   App.commit();
@@ -265,4 +269,29 @@ App.actions.resetAll = async () => {
   App.state = Store.fresh();
   App._profilesCache = [];
   App.go('#/onboarding');
+};
+
+/* ---------- Profil : statistiques + réglages ---------- */
+Views.profile = {
+  render([tab = 'stats']) {
+    this.tab = tab === 'settings' ? 'settings' : 'stats';
+    const inner = (this.tab === 'stats' ? Views.stats : Views.settings).render([]);
+    const s = App.state;
+    const cl = Engine.charLevel(s);
+    return `
+      <header class="page-head profile-head">
+        <a class="profile-pic" href="#/avatar" title="Personnaliser mon avatar">${UI.portrait(s, 84)}</a>
+        <div>
+          <p class="eyebrow">Profil</p>
+          <h1>${U.esc(s.profile.name)}</h1>
+          <p class="muted">${U.esc(Engine.title('char', cl.level))} · niveau ${cl.level} · ${U.fmtNum(Engine.totalXP(s))} XP${s.profile.height ? ` · ${s.profile.height} cm · ${s.profile.weight} kg` : ''}${s.clan ? ` · clan ${U.esc(s.clan.name)}` : ''}</p>
+        </div>
+      </header>
+      ${UI.tabs('profile', [['stats', 'Statistiques'], ['settings', 'Réglages']], this.tab)}
+      ${inner.replace(/^\s*<header class="page-head">[\s\S]*?<\/header>/, '')}`;
+  },
+  mount(params) {
+    const v = this.tab === 'stats' ? Views.stats : Views.settings;
+    if (v.mount) v.mount(params);
+  },
 };

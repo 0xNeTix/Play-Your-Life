@@ -79,8 +79,8 @@ const ARCS = [
     intro: 'Allume une bougie chaque jour. Une seule. Ne la laisse jamais s\'éteindre trois jours de suite.',
     outro: 'La flamme a tenu. Tu as compris le secret : ce n\'est pas l\'intensité, c\'est la répétition.',
     steps: [
-      { type: 'streak', value: 3, text: 'Tiens une série de 3 jours de quêtes' },
-      { type: 'quests', count: 10, text: 'Accomplis 10 quêtes du jour' },
+      { type: 'streak', value: 3, text: 'Tiens une série de 3 jours de tâches' },
+      { type: 'quests', count: 10, text: 'Accomplis 10 tâches du jour' },
       { type: 'level', domain: 'discipline', value: 3, text: 'Atteins Discipline niveau 3' },
     ],
     reward: { xp: { discipline: 250 }, title: 'Porteur de la Flamme' },

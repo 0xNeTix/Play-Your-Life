@@ -1,10 +1,15 @@
 /* Journal de quêtes : quêtes confiées par les PNJ */
 Views.journal = {
+  cFilter: 'all',
+
   render() {
     const s = App.state;
     const byStatus = st => ARCS.filter(a => s.npc.arcs[a.id]?.status === st);
     const ready = byStatus('ready'), active = byStatus('active'), done = byStatus('done');
+    const contracts = Engine.allMissions(s).filter(m => this.cFilter === 'all' || m.domain === this.cFilter)
+      .sort((a, b) => (a.minLevel || a.minTier || 0) - (b.minLevel || b.minTier || 0));
     const met = new Set(Object.keys(s.npc.arcs).map(id => ARCS.find(a => a.id === id)?.npc).filter(Boolean));
+    for (const m of Engine.allMissions(s)) if (Engine.missionUnlocked(s, m)) met.add(Engine.missionGiver(m));
     const today = s.npc.encounters[U.dayKey()] || 0;
 
     const arcCard = (arc, mode) => {
@@ -56,6 +61,14 @@ Views.journal = {
       </section>
 
       <section class="card">
+        <div class="card-head"><h2>Contrats</h2>
+          <div class="seg">${['all', ...GAME.domainOrder].map(d => `<button class="${this.cFilter === d ? 'on' : ''}" data-act="contractFilter" data-d="${d}" title="${d === 'all' ? 'Tous' : GAME.domains[d].name}">${d === 'all' ? 'Tous' : GAME.domains[d].icon}</button>`).join('')}</div>
+        </div>
+        <p class="muted small">Des tâches concrètes que les PNJ te confient au fil de tes niveaux et de tes tests. Valide-les avec une preuve de ce que tu as fait.</p>
+        ${UI.missions(contracts, { lockedLimit: 4 })}
+      </section>
+
+      <section class="card">
         <div class="card-head"><h2>Personnages rencontrés</h2><span class="muted small">${met.size} / ${Object.keys(NPCS).length}</span></div>
         <div class="npc-roster">${Object.entries(NPCS).map(([id, n]) => met.has(id)
           ? `<div class="roster-item ${n.domain ? 'dom-' + n.domain : ''}"><div class="npc-portrait sm">${UI.npcFace(id, 46)}</div><div><strong>${U.esc(n.name)}</strong><small class="muted">${U.esc(n.role)}</small></div></div>`
@@ -83,3 +96,5 @@ App.actions.arcAbandon = el => {
   App.state.npc.arcs[el.dataset.id] = { status: 'declined', declinedTs: Date.now() };
   App.commit();
 };
+
+App.actions.contractFilter = el => { Views.journal.cFilter = el.dataset.d; App.render(false); };

@@ -1,5 +1,5 @@
 /* Corps : tests, séances & régularité, course à pied, physique (photos), missions */
-const SPORT_TABS = [['tests', 'Tests'], ['seances', 'Séances'], ['course', 'Course'], ['physique', 'Physique'], ['missions', 'Missions']];
+const SPORT_TABS = [['tests', 'Tests'], ['seances', 'Séances'], ['course', 'Course'], ['physique', 'Physique']];
 
 Views.sport = {
   render([tab = 'tests']) {
@@ -34,7 +34,7 @@ Views.sport = {
           : (b - cur) / (r.next.at - cur);
       }
       return `<div class="card record">
-        <div class="rec-head"><span>${ex.icon} ${ex.name}</span>${r ? `<span class="rank rank-${r.letter.replace('+', 'p')}">${r.letter}</span>` : '<span class="rank rank-none">?</span>'}</div>
+        <div class="rec-head"><span>${ex.icon} ${ex.name}</span>${r ? `<span class="rank rank-${r.letter === '—' ? 'none' : r.letter}">${r.letter}</span>` : '<span class="rank rank-none">?</span>'}</div>
         <div class="rec-val">${b == null ? '—' : Engine.fmtTest(k, b)}</div>
         <div class="muted small">${b == null ? 'Pas encore testé' : `Record · dernier test ${U.fmtShort(last.ts)} : ${Engine.fmtTest(k, last.value)}`}</div>
         ${r && r.next ? `<div class="rec-next">Rang ${r.next.letter} à ${Engine.fmtTest(k, r.next.at)}</div>
@@ -106,7 +106,6 @@ Views.sport = {
     const reg = Engine.regularity(s);
     const ws = Engine.weekStreak(s);
     const sessions = s.sport.sessions.slice().sort((a, b) => b.ts - a.ts);
-    const prs = Engine.liftPRs(s);
     const days = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
     const monday = U.weekStart();
     const dayDots = days.map((d, i) => {
@@ -117,8 +116,6 @@ Views.sport = {
     }).join('');
     const today = U.dayKey();
     const minDay = U.dayKey(Date.now() - 7 * 86400000);
-    const prRows = Object.entries(prs).sort((a, b) => EXERCISES.byId[a[0]].name.localeCompare(EXERCISES.byId[b[0]].name))
-      .map(([id, p]) => [U.esc(EXERCISES.byId[id].name), this.fmtLoad(p.kind, p.value), U.fmtDate(p.ts)]);
 
     return `
       <section class="cols">
@@ -130,69 +127,44 @@ Views.sport = {
             <div><div class="kpi-v">${reg == null ? '—' : reg + ' %'}</div><div class="muted small">semaines réussies (8 dernières)</div></div>
             <div><div class="kpi-v">${Engine.workouts(s).length}</div><div class="muted small">séances au total</div></div>
           </div>
-          <p class="muted small">Objectif : ${goal} séances par semaine (courses comprises). +${GAME.xp.weekGoal} XP Corps et +${GAME.xp.weekGoalDiscipline} XP Discipline chaque semaine où il est atteint. Modifiable dans les réglages.</p>
+          <p class="muted small">Objectif : ${goal} séances par semaine (courses comprises). +${GAME.xp.weekGoal} XP Corps et +${GAME.xp.weekGoalDiscipline} XP Discipline chaque semaine où il est atteint.</p>
           <div id="ch-sessions"></div>
         </div>
 
         <div class="card">
-          <div class="card-head"><h2>Enregistrer une séance</h2></div>
-          <form data-form="workout" class="stack-form" id="workout-form">
+          <div class="card-head"><h2>J'ai fait une séance</h2></div>
+          <form data-form="workout" class="stack-form">
+            <label>Titre<input name="title" required maxlength="60" placeholder="Ex. Push day, Jambes, Boxe…"></label>
+            <label>Description (optionnel)<textarea name="notes" rows="3" maxlength="400" placeholder="Ce que tu as fait, tes sensations…"></textarea></label>
             <div class="row">
-              <label>Type<select name="type">${Object.entries(GAME.workoutTypes).map(([k, t]) => `<option value="${k}">${t.icon} ${t.label}</option>`).join('')}</select></label>
               <label>Date<input type="date" name="date" value="${today}" min="${minDay}" max="${today}" required></label>
+              <label>Durée (min)<input type="number" name="minutes" min="5" max="600" required inputmode="numeric"></label>
             </div>
-            <div class="row">
-              <label>Durée (min)<input type="number" name="minutes" min="5" max="600" required></label>
-              <label class="slider"><span>Intensité ressentie <output id="out-rpe">6</output>/10</span><input type="range" name="rpe" min="1" max="10" value="6" data-out="out-rpe"></label>
-            </div>
-            <div class="ex-rows" id="ex-rows"></div>
-            <button type="button" class="btn ghost" data-act="addExRow">＋ Ajouter un exercice</button>
-            <label>Notes (optionnel)<input name="notes" maxlength="200" placeholder="Ressenti, programme suivi…"></label>
-            <button class="btn primary">Valider la séance (+1 XP/min, max ${GAME.xp.workoutMax})</button>
+            <label class="ws-photo"><span class="ws-pick"><img id="ws-prev" alt=""><span>${Icons.get('camera', 18)} Ajouter une photo (optionnel)</span></span>
+              <input type="file" name="photo" accept="image/*" data-preview="ws-prev" hidden></label>
+            <button class="btn primary">Valider la séance</button>
+            <p class="muted small">+1 XP par minute (max ${GAME.xp.workoutMax}). L'import depuis Hevy arrivera plus tard.</p>
           </form>
         </div>
       </section>
 
-      <section class="cols">
-        <div class="card">
-          <div class="card-head"><h2>Historique</h2><span class="muted small">${sessions.length}</span></div>
-          ${sessions.length ? `<ul class="log">${sessions.slice(0, 15).map(se => {
-            const t = GAME.workoutTypes[se.type] || GAME.workoutTypes.other;
-            const ex = (se.exercises || []).map(e => `${EXERCISES.byId[e.ex]?.name || e.ex} ${this.fmtSet(e)}`).join(' · ');
-            return `<li><span>${t.icon} ${t.label} · RPE ${se.rpe}</span><strong>${U.fmtDate(se.ts, { weekday: 'short', day: 'numeric', month: 'short' })} · ${se.minutes} min</strong>${ex ? `<small>${U.esc(ex)}</small>` : ''}${se.notes ? `<small>« ${U.esc(se.notes)} »</small>` : ''}</li>`;
-          }).join('')}</ul>` : '<p class="empty-hint">Aucune séance. La prochaine que tu fais, note-la ici juste après.</p>'}
-        </div>
-        <div class="card">
-          <div class="card-head"><h2>Records du carnet</h2></div>
-          ${prRows.length ? UI.table(['Exercice', 'Meilleur', 'Date'], prRows) : '<p class="empty-hint">Ajoute des exercices à tes séances pour suivre tes charges et répétitions max.</p>'}
-        </div>
+      <section class="card">
+        <div class="card-head"><h2>Journal des séances</h2><span class="muted small">${sessions.length}</span></div>
+        ${sessions.length ? `<div class="ws-grid">${sessions.slice(0, 24).map(se => `
+          <article class="ws-item">
+            ${se.photoId ? `<div class="ws-img"><img data-ws="${se.photoId}" alt=""></div>` : ''}
+            <div class="ws-body">
+              <div class="ws-date">${U.fmtDate(se.ts, { weekday: 'short', day: 'numeric', month: 'short' })} · ${se.minutes} min</div>
+              <strong>${U.esc(se.title || (GAME.workoutTypes[se.type]?.label) || 'Séance')}</strong>
+              ${se.notes ? `<p>${U.esc(se.notes)}</p>` : ''}
+            </div>
+            <button class="icon-btn ws-del" data-act="workoutDel" data-id="${se.id}" aria-label="Supprimer la séance">✕</button>
+          </article>`).join('')}</div>` : '<p class="empty-hint">Aucune séance. La prochaine que tu fais, note-la ici juste après.</p>'}
       </section>`;
   },
-  fmtLoad(kind, v) {
-    return kind === 'kg' ? `${v} kg` : kind === 'time' ? U.fmtDuration(v) : kind === 'cardio' ? `${v} min` : `${v} rép.`;
-  },
-  fmtSet(e) {
-    const ex = EXERCISES.byId[e.ex];
-    if (!ex) return '';
-    if (ex.kind === 'cardio') return `${e.min} min`;
-    if (ex.kind === 'time') return `${e.sets}×${U.fmtDuration(e.sec)}`;
-    if (ex.kind === 'kg') return `${e.sets}×${e.reps} @ ${e.kg} kg`;
-    return `${e.sets}×${e.reps}`;
-  },
-  exRowHtml() {
-    const opts = Object.entries(EXERCISES.groups).map(([g, items]) => `<optgroup label="${U.esc(g)}">${items.map(([id, n]) => `<option value="${id}">${U.esc(n)}</option>`).join('')}</optgroup>`).join('');
-    return `<div class="ex-row">
-      <select name="ex" data-change="exKind"><option value="">— Exercice —</option>${opts}</select>
-      <input name="sets" type="number" min="1" max="50" placeholder="Séries" title="Séries">
-      <input name="reps" type="number" min="1" max="1000" placeholder="Rép." title="Répétitions">
-      <input name="load" type="number" min="0" max="1000" step="0.5" placeholder="kg" title="Charge (kg)">
-      <button type="button" class="icon-btn" data-act="delExRow" aria-label="Retirer">✕</button>
-    </div>`;
-  },
   mount_seances() {
-    const rows = document.getElementById('ex-rows');
-    if (rows && !rows.children.length) rows.insertAdjacentHTML('beforeend', this.exRowHtml());
     const s = App.state;
+    document.querySelectorAll('img[data-ws]').forEach(async img => { img.src = (await Store.getPhoto(img.dataset.ws)) || ''; });
     const el = document.getElementById('ch-sessions');
     if (el) {
       const ws = U.weekStart();
@@ -350,10 +322,6 @@ Views.sport = {
     });
   },
 
-  /* ================= Missions ================= */
-  tab_missions() {
-    return `<section class="card"><div class="card-head"><h2>Missions Corps</h2></div>${UI.missions(GAME.missions.filter(m => m.domain === 'sport'))}</section>`;
-  },
 };
 
 /* ---------- Actions : tests ---------- */
@@ -398,23 +366,6 @@ App.forms.test = fd => {
 };
 
 /* ---------- Actions : séances ---------- */
-App.actions.addExRow = () => {
-  const rows = document.getElementById('ex-rows');
-  if (rows && rows.children.length < 20) rows.insertAdjacentHTML('beforeend', Views.sport.exRowHtml());
-};
-App.actions.delExRow = el => el.closest('.ex-row').remove();
-App.actions.exKind = el => {
-  const row = el.closest('.ex-row');
-  const ex = EXERCISES.byId[el.value];
-  const reps = row.querySelector('[name=reps]'), load = row.querySelector('[name=load]'), sets = row.querySelector('[name=sets]');
-  const kind = ex ? ex.kind : 'reps';
-  sets.hidden = kind === 'cardio';
-  reps.hidden = kind === 'time' || kind === 'cardio';
-  load.hidden = kind === 'reps';
-  load.placeholder = kind === 'kg' ? 'kg' : kind === 'time' ? 'sec' : 'min';
-  load.title = kind === 'kg' ? 'Charge (kg)' : kind === 'time' ? 'Durée par série (secondes)' : 'Durée (minutes)';
-};
-
 /* Bonus de régularité : objectif hebdomadaire atteint (une fois par semaine) */
 function checkWeekGoal(ts) {
   const s = App.state;
@@ -432,29 +383,35 @@ function tsFromDate(dateStr) {
   return isNaN(d) ? Date.now() : Math.min(d.getTime(), Date.now());
 }
 
-App.forms.workout = (fd, form) => {
+App.forms.workout = async (fd, form) => {
   const s = App.state;
   const minutes = Math.round(Number(fd.get('minutes')));
-  if (!(minutes >= 5 && minutes <= 600)) return;
-  const exercises = [];
-  form.querySelectorAll('.ex-row').forEach(row => {
-    const id = row.querySelector('[name=ex]').value;
-    const ex = EXERCISES.byId[id];
-    if (!ex) return;
-    const n = name => Number(row.querySelector(`[name=${name}]`).value) || 0;
-    const e = { ex: id, sets: Math.max(1, n('sets')) };
-    if (ex.kind === 'reps') e.reps = n('reps');
-    if (ex.kind === 'kg') { e.reps = n('reps'); e.kg = n('load'); }
-    if (ex.kind === 'time') e.sec = n('load');
-    if (ex.kind === 'cardio') { e.min = n('load'); delete e.sets; }
-    exercises.push(e);
-  });
+  const title = String(fd.get('title') || '').trim();
+  if (!title || !(minutes >= 5 && minutes <= 600)) return;
+  const btn = form.querySelector('button.primary');
+  btn.disabled = true;
   const id = U.uid();
+  let photoId = null;
+  const file = fd.get('photo');
+  if (file && file.size) {
+    try {
+      photoId = 'ws-' + id;
+      await Store.putPhoto(s, photoId, await U.compressImage(file, 900, .8));
+    } catch (e) { photoId = null; App.toast('Photo ignorée : ' + U.esc(e.message), 'warn'); }
+  }
   const ts = tsFromDate(fd.get('date'));
-  const type = fd.get('type');
-  s.sport.sessions.push({ id, ts, type, minutes, rpe: Number(fd.get('rpe')), notes: String(fd.get('notes') || '').trim(), exercises });
-  App.grant('sport', Math.min(GAME.xp.workoutMax, minutes * GAME.xp.workoutPerMin), `Séance ${GAME.workoutTypes[type].label} (${minutes} min)`, id);
+  s.sport.sessions.push({ id, ts, title, minutes, notes: String(fd.get('notes') || '').trim(), photoId });
+  App.grant('sport', Math.min(GAME.xp.workoutMax, minutes * GAME.xp.workoutPerMin), `Séance « ${title} » (${minutes} min)`, id);
   checkWeekGoal(ts);
+  App.commit();
+};
+App.actions.workoutDel = async el => {
+  const s = App.state;
+  const se = s.sport.sessions.find(x => x.id === el.dataset.id);
+  if (!se || !confirm(`Supprimer la séance « ${se.title || 'Séance'} » ? L'XP gagnée sera retirée.`)) return;
+  if (se.photoId) await Store.delPhoto(se.photoId);
+  s.sport.sessions = s.sport.sessions.filter(x => x.id !== se.id);
+  s.xpLog = s.xpLog.filter(e => e.ref !== se.id);
   App.commit();
 };
 

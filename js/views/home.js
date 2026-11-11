@@ -1,14 +1,11 @@
-/* QG : vue d'ensemble, quêtes du jour, régularité, PNJ, boss de la semaine */
+/* QG : vue d'ensemble épurée — niveaux, tâches du jour, régularité, PNJ, boss */
 Views.home = {
-  boardDomain: 'all',
-
   render() {
     const s = App.state;
-    const quests = Engine.questsToday(s);
-    const doneN = quests.filter(q => q.done).length;
+    const tasks = Engine.questsToday(s);
+    const doneN = tasks.filter(q => q.done).length;
     const streak = Engine.streak(s);
     const cl = Engine.charLevel(s);
-    const checkin = Engine.checkinThisWeek(s);
     const wk = U.weekKey();
     const boss = s.bosses[wk];
     const bossOpen = cl.level >= GAME.bossUnlockCharLevel;
@@ -16,122 +13,94 @@ Views.home = {
     const weekW = Engine.workoutsInWeek(s).length;
     const goal = s.settings.weeklyGoal;
     const arcs = [...Engine.activeArcs(s), ...ARCS.filter(a => s.npc.arcs[a.id]?.status === 'ready')];
+    const contracts = Engine.allMissions(s).filter(m => !s.missions[m.id] && Engine.missionUnlocked(s, m)).length;
 
     const domainCards = GAME.domainOrder.map(d => {
       const info = Engine.domainLevel(s, d);
-      const nx = Engine.nextUnlock(s, d);
       const dd = GAME.domains[d];
       return `<a class="card dom-card dom-${d}" href="#/${dd.route}">
-        <div class="dc-head"><span class="dc-ico">${dd.icon}</span><span class="dc-name">${dd.name}</span><span class="dc-lvl">Niv. ${info.level}</span></div>
+        <div class="dc-head"><span class="dc-ico">${dd.icon}</span><span class="dc-name">${dd.name}</span><span class="dc-lvl">${info.level}</span></div>
         <div class="dc-title">${U.esc(Engine.title(d, info.level))}</div>
         ${UI.xpBar(info, d)}
-        <div class="dc-foot"><span>${U.fmtNum(info.into)} / ${U.fmtNum(info.need)} XP</span></div>
-        ${nx ? `<div class="dc-next">Niv. ${nx.level} → ${U.esc(nx.text)}</div>` : ''}
+        <div class="dc-foot">${U.fmtNum(info.into)} / ${U.fmtNum(info.need)} XP</div>
       </a>`;
     }).join('');
 
-    const questRows = quests.map(q => `
+    const taskRows = tasks.map(q => `
       <li class="quest ${q.done ? 'done' : ''}">
-        <button class="check" data-act="questDone" data-id="${q.id}" ${q.done ? 'disabled' : ''} aria-label="Valider la quête">${q.done ? '✓' : ''}</button>
-        <div class="q-main"><div class="q-text">${U.esc(q.text)}</div><div class="q-meta">${UI.domainBadge(q.domain)}<span class="q-xp">+${q.xp || GAME.customQuestXp} XP</span></div></div>
-        ${q.done ? '' : `<button class="btn ghost sm" data-act="timer" data-text="${U.esc(q.text)}" title="Démarrer 5 minutes">5 min</button>
-        <button class="icon-btn" data-act="questDel" data-id="${q.id}" aria-label="Supprimer">✕</button>`}
+        <button class="check" data-act="questDone" data-id="${q.id}" ${q.done ? 'disabled' : ''} aria-label="Fait"></button>
+        <div class="q-main"><div class="q-text">${U.esc(q.text)}</div><div class="q-meta"><span class="q-dom dom-${q.domain}">${GAME.domains[q.domain].icon}${GAME.domains[q.domain].name}</span><span class="q-xp">+${q.xp || GAME.customQuestXp} XP</span></div></div>
+        ${q.done ? '' : `<button class="icon-btn" data-act="timer" data-text="${U.esc(q.text)}" title="Lancer 5 minutes">${Icons.get('timer', 17)}</button><button class="icon-btn" data-act="questDel" data-id="${q.id}" aria-label="Supprimer">✕</button>`}
       </li>`).join('');
-
-    const taken = new Set(quests.map(q => q.text));
-    const board = GAME.questLibrary.map((q, i) => ({ ...q, i }))
-      .filter(q => (this.boardDomain === 'all' || q.domain === this.boardDomain) && !taken.has(q.text));
 
     return `
       <header class="page-head">
         <p class="eyebrow">${U.esc(today)}</p>
         <h1>Salut ${U.esc(s.profile.name)}. Qu'est-ce que tu fais <em>aujourd'hui</em> ?</h1>
-        <p class="muted">Planifier ne rapporte aucun XP. Seule l'action compte.</p>
       </header>
 
       <section class="grid4">${domainCards}</section>
 
       <section class="cols">
-        <div class="card">
-          <div class="card-head"><h2>Quêtes du jour</h2><span class="pill">${doneN} / ${GAME.maxQuestsPerDay}</span></div>
-          <p class="muted small">${GAME.maxQuestsPerDay} actions maximum, faisables aujourd'hui. Ce qui n'est pas fait disparaît à minuit : pas de liste infinie.</p>
-          ${quests.length ? `<ul class="quests">${questRows}</ul>` : '<p class="empty-hint">Aucune quête. Pioche dans le tableau ci-dessous une action que tu peux commencer dans les 5 prochaines minutes.</p>'}
-          ${quests.length < GAME.maxQuestsPerDay ? `
-            <div class="board">
-              <div class="board-head"><h3>Tableau des quêtes</h3>
-                <div class="seg">${['all', ...GAME.domainOrder].map(d => `<button class="${this.boardDomain === d ? 'on' : ''}" data-act="boardFilter" data-d="${d}">${d === 'all' ? 'Toutes' : GAME.domains[d].icon}</button>`).join('')}</div>
-              </div>
-              <ul class="board-list">${board.map(q => `<li><button class="board-item dom-${q.domain}" data-act="questPick" data-i="${q.i}">
-                <span class="bi-dot"></span><span class="bi-text">${U.esc(q.text)}</span><span class="diff diff-${q.diff}">${GAME.questDifficulty[q.diff].label}</span><span class="bi-xp">+${GAME.questDifficulty[q.diff].xp}</span></button></li>`).join('')}</ul>
-              <details class="custom-quest"><summary>Créer ma propre quête</summary>
-                <form data-form="quest" class="quest-form">
-                  <input name="text" required maxlength="90" placeholder="Une action concrète (ex. 20 pompes)">
-                  <select name="domain">${UI.domainOptions('sport')}</select>
-                  <button class="btn primary">Ajouter</button>
-                </form>
-              </details>
-            </div>`
-          : doneN === GAME.maxQuestsPerDay ? '<p class="win">Journée parfaite. Repose-toi ou attaque une mission.</p>' : ''}
-        </div>
-
         <div class="stack">
           <div class="mini-grid">
             <div class="card streak-card">
-              <div class="streak-n">${Icons.get('flame', 26)}${streak}</div>
+              <div class="streak-n">${Icons.get('flame', 24)}${streak}</div>
               <div><strong>jour${streak > 1 ? 's' : ''} de série</strong><p class="muted small">Record : ${Engine.bestStreak(s)} j</p></div>
             </div>
-            <a class="card streak-card link" href="#/sport/seances">
-              <div class="streak-n">${Icons.get('sport', 26)}${weekW}/${goal}</div>
-              <div><strong>séances cette semaine</strong><p class="muted small">${Engine.weekStreak(s)} sem. d'affilée à l'objectif</p></div>
+            <a class="card streak-card" href="#/sport/seances">
+              <div class="streak-n">${Icons.get('sport', 24)}${weekW}/${goal}</div>
+              <div><strong>séances cette semaine</strong><p class="muted small">${Engine.weekStreak(s)} sem. à l'objectif</p></div>
             </a>
           </div>
 
-          <a class="card link-card ${checkin ? 'ok' : 'todo'}" href="#/sport/physique">
-            <span class="lc-ico">${Icons.get('camera', 22)}</span>
-            <div><strong>Check-in physique — semaine ${wk.split('-W')[1]}</strong>
-            <p class="muted small">${checkin ? `Fait · score ${checkin.total}/100` : `À faire : photo + auto-évaluation (+${GAME.xp.checkin} XP)`}</p></div>
-            <span class="lc-go">${checkin ? '✓' : '→'}</span>
-          </a>
-
           <div class="card">
-            <div class="card-head"><h2>Quêtes de PNJ</h2><a href="#/journal" class="small">Journal →</a></div>
+            <div class="card-head"><h2>Tâches à faire</h2><span class="pill ${doneN && doneN === tasks.length ? 'ok' : ''}">${doneN} / ${tasks.length || GAME.maxQuestsPerDay}</span></div>
+            ${tasks.length ? `<ul class="quests">${taskRows}</ul>` : '<p class="muted small">Rien pour aujourd\'hui. Ajoute une action que tu peux commencer dans les 5 minutes.</p>'}
+            ${tasks.length < GAME.maxQuestsPerDay ? `
+              <form data-form="quest" class="task-form">
+                <input name="text" list="task-ideas" required maxlength="90" placeholder="Nouvelle tâche…" autocomplete="off">
+                <select name="domain" aria-label="Domaine">${UI.domainOptions('discipline')}</select>
+                <button class="btn primary" aria-label="Ajouter">＋</button>
+                <datalist id="task-ideas">${GAME.questLibrary.map(q => `<option value="${U.esc(q.text)}"></option>`).join('')}</datalist>
+              </form>
+              <p class="muted small">${GAME.maxQuestsPerDay} tâches maximum, elles s'effacent à minuit.</p>` : ''}
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="card">
+            <div class="card-head"><h2>Quêtes</h2><a href="#/journal">Journal →</a></div>
             ${arcs.length ? `<ul class="arc-mini">${arcs.map(a => {
               const p = Engine.arcProgress(s, a);
               const ready = s.npc.arcs[a.id].status === 'ready';
               return `<li><span class="am-ico">${UI.npcFace(a.npc, 36)}</span><div><strong>${U.esc(a.title)}</strong>
                 <div class="xpbar sm"><span style="width:${(p.count / p.steps.length) * 100}%"></span></div>
                 <small class="muted">${ready ? 'Retourne voir ' + U.esc(NPCS[a.npc].name) : `${p.count}/${p.steps.length} étapes · ${U.esc(NPCS[a.npc].name)}`}</small></div></li>`;
-            }).join('')}</ul>` : '<p class="muted small">Aucune quête en cours. Les PNJ apparaissent au hasard, une à deux fois par jour, quand tu agis.</p>'}
+            }).join('')}</ul>` : '<p class="muted small">Aucune grande quête en cours. Les PNJ apparaissent au hasard quand tu agis.</p>'}
+            ${contracts ? `<a class="contract-link" href="#/journal">${Icons.get('target', 16)} ${contracts} contrat${contracts > 1 ? 's' : ''} en attente</a>` : ''}
           </div>
 
           <div class="card boss ${bossOpen ? '' : 'locked'}">
             <div class="card-head"><h2>Boss de la semaine</h2>${boss?.done ? '<span class="pill ok">Vaincu</span>' : ''}</div>
-            ${!bossOpen ? `<p class="muted">Se débloque au niveau ${GAME.bossUnlockCharLevel} du personnage (actuel : ${cl.level}).</p>`
+            ${!bossOpen ? `<p class="muted small">Se débloque au niveau ${GAME.bossUnlockCharLevel} du personnage (actuel : ${cl.level}).</p>`
             : boss ? `
-              <p class="boss-text">${U.esc(boss.text)}</p>${UI.domainBadge(boss.domain)}
+              <p class="boss-text">${U.esc(boss.text)}</p>
               ${boss.done ? `<p class="muted small">Vaincu le ${U.fmtDate(boss.doneTs)} · « ${U.esc(boss.note)} »</p>` : `
                 <form data-form="bossDone" class="inline-form">
                   <input name="note" required minlength="10" maxlength="240" placeholder="Preuve : comment l'as-tu vaincu ?">
-                  <button class="btn primary sm">Vaincu (+${GAME.xp.boss} XP)</button>
+                  <button class="btn primary sm">Vaincu</button>
                 </form>`}`
-            : `<p class="muted small">Un défi réel et significatif, à terminer avant dimanche soir. Un seul.</p>
-              <form data-form="boss" class="quest-form">
-                <input name="text" required maxlength="120" placeholder="Ex. Passer un examen blanc CCNA">
-                <select name="domain">${UI.domainOptions('pro')}</select>
+            : `<form data-form="boss" class="task-form">
+                <input name="text" required maxlength="120" placeholder="Un défi réel à finir avant dimanche">
+                <select name="domain" aria-label="Domaine">${UI.domainOptions('pro')}</select>
                 <button class="btn primary">Défier</button>
               </form>`}
           </div>
         </div>
-      </section>
-
-      <section class="card">
-        <div class="card-head"><h2>Missions de Discipline</h2><span class="muted small">Niv. ${Engine.domainLevel(s, 'discipline').level}</span></div>
-        ${UI.missions(GAME.missions.filter(m => m.domain === 'discipline'))}
       </section>`;
   },
 };
-
-App.actions.boardFilter = el => { Views.home.boardDomain = el.dataset.d; App.render(false); };
 
 function addQuest(text, domain, xp) {
   const q = Engine.questsToday(App.state);
@@ -139,10 +108,12 @@ function addQuest(text, domain, xp) {
   q.push({ id: U.uid(), text, domain, xp, done: false });
   App.commit();
 }
-App.forms.quest = fd => addQuest(String(fd.get('text') || '').trim(), fd.get('domain'), GAME.customQuestXp);
-App.actions.questPick = el => {
-  const q = GAME.questLibrary[Number(el.dataset.i)];
-  if (q) addQuest(q.text, q.domain, GAME.questDifficulty[q.diff].xp);
+/* Une tâche tirée des idées garde son domaine et son XP de difficulté */
+App.forms.quest = fd => {
+  const text = String(fd.get('text') || '').trim();
+  const idea = GAME.questLibrary.find(q => q.text === text);
+  if (idea) addQuest(idea.text, idea.domain, GAME.questDifficulty[idea.diff].xp);
+  else addQuest(text, fd.get('domain'), GAME.customQuestXp);
 };
 App.actions.questDel = el => {
   const k = U.dayKey();

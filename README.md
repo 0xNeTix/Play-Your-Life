@@ -7,49 +7,53 @@ Ta vie réelle, présentée comme un jeu vidéo. On ne gagne aucun XP en planifi
 Double-clique sur `Lancer.bat`. Il démarre `python -m http.server 8765` et ouvre http://localhost:8765.
 Utilise toujours la même adresse : les données sont enregistrées dans le navigateur et liées à l'adresse utilisée.
 
-## Domaines
+## Menus
 
-| Domaine | Comment gagner de l'XP |
+| Menu | Contenu |
 |---|---|
-| 💼 Métier | Tests de connaissances par sous-domaine (3 paliers), missions pratiques débloquées par palier, réalisations réelles (certifications, projets…) |
-| 💪 Corps | Tests : pompes, squats, tractions, gainage, course (distance en 12 min ou rythme sur 5 km), avec des rangs de E à S+. Carnet de séances (~90 exercices), suivi de la régularité avec un objectif hebdomadaire, course à pied (distance, temps, rythme), check-in photo hebdomadaire |
-| 🧠 Esprit | Livres terminés (3 enseignements obligatoires), sessions d'apprentissage chronométrées |
-| ⚡ Discipline | 3 quêtes par jour maximum, à piocher dans un tableau de quêtes préfaites ou à créer (elles expirent à minuit), série de jours, boss de la semaine |
+| QG | Niveaux des 4 domaines, série de jours, séances de la semaine, **tâches à faire** (3 max, s'effacent à minuit), quêtes de PNJ en cours, boss de la semaine |
+| Corps | Tests physiques (rangs E → D → C → B → A → S → SS), séances (titre, description, photo), régularité, course à pied (import GPX/TCX), check-in photo |
+| Métier | Carte de compétences en radar, poste actuel et poste visé avec l'écart à combler, 5 QCM par thématique (Fondamentaux → Maître) |
+| Esprit | Livres terminés (3 enseignements obligatoires), sessions d'apprentissage |
+| Quêtes | Grandes quêtes des PNJ et **contrats** (les anciennes missions), confiés par les PNJ au fil des niveaux et des tests |
+| Multijoueur | Classement (photo ou avatar), cartes de joueur, **clan** avec son classement interne |
+| Trésor | Récompenses réelles, titres, rangs |
+| Profil | Statistiques et réglages |
 
 Plus on monte, plus il faut d'XP : passer du niveau n au niveau n+1 coûte `100 × n^1.6` XP (`250 × n^1.6` pour le personnage).
 
-Chaque niveau débloque un titre, de nouvelles missions IRL ou les **récompenses réelles** que tu définis dans l'onglet Récompenses.
+## Métier
+
+- 6 thématiques informatiques × 5 QCM (`js/data/quiz-it.js` pour les paliers 1 à 3, `js/data/quiz-it-expert.js` pour Expert et Maître).
+- Postes et niveaux attendus par thématique : `js/data/jobs.js`. Le radar compare ton niveau au poste visé et propose la prochaine étape.
+- Prévu : chemin de progression automatique vers le poste visé, certifications suggérées selon le profil.
 
 ## Personnage, avatar et carte
 
-- À la création : prénom, **taille et poids** (obligatoires), photo de profil (optionnelle, recadrée au carré, gardée sur l'appareil).
-- **Avatar** façon Bitmoji (clic sur ton portrait) : visage, cheveux, yeux, bouche, pilosité, lunettes, couvre-chef, tenue, détails, cadre, fond. Moteur de dessin : `js/avatar.js`.
-- **Cosmétiques et rareté** : Commun, Rare, Épique, Légendaire. Ils se débloquent par niveau de domaine, en terminant une quête de PNJ (chaque PNJ offre un objet), par XP totale cumulée, par nombre de quêtes du jour ou par série de jours. Chaque nouvel objet est révélé par une animation, avec un bouton pour l'équiper.
-- **Carte de joueur** (Réglages et Guilde) : carte métallique dont le métal suit le niveau du personnage (Cuivre 1–3, Argent 4–6, Or 7–9, Rubis 10–14, Légende 15+ holographique), portrait avec son cadre, niveaux par domaine, numéro de série. La carte partagée montre l'avatar, jamais la photo.
+- À la création : prénom, **taille et poids** (obligatoires), photo de profil (optionnelle, gardée sur l'appareil).
+- **Avatar** (clic sur ton portrait) avec des cosmétiques de rareté Commun, Rare, Épique, Légendaire, débloqués par niveau, quêtes de PNJ, XP cumulée, tâches accomplies ou série de jours.
+- **Carte de joueur** : métal selon le niveau (Cuivre, Argent, Or, Rubis, Légende), photo ou avatar, tag de clan. La photo n'est partagée que si tu l'affiches et que le réglage « Photo sur ma carte partagée » est activé.
 
 ## Course à pied et Strava
 
-Strava ne permet pas de lire une activité à partir de son simple lien : il faut leur API (connexion OAuth et serveur). En attendant, l'import se fait par fichier :
-sur Strava, ouvre l'activité, menu « … » → **Exporter GPX**, puis dépose le fichier dans Corps → Course. Distance, temps en mouvement, rythme, dénivelé et date sont calculés localement (GPX et TCX, aussi Garmin, Coros, Suunto). Le lien Strava peut être ajouté comme preuve. Une course de plus de 7 jours est archivée sans XP, et un même fichier ne peut pas être importé deux fois.
+Strava ne permet pas de lire une activité à partir de son simple lien : il faut leur API (connexion OAuth et serveur). En attendant : sur Strava, ouvre l'activité, menu « … » → **Exporter GPX**, puis dépose le fichier dans Corps → Course. Distance, temps en mouvement, rythme, dénivelé et date sont calculés localement. Le lien Strava peut être ajouté comme preuve.
 
-## PNJ et quêtes
+Prévu : import des séances depuis Hevy.
 
-Six PNJ (Maître Kael, Lyra, Orin, Sœur Mira, Capitaine Brann, le Voyageur) apparaissent au hasard, 1 à 2 fois par jour, à l'ouverture ou après une action. Leurs quêtes durent plusieurs niveaux et touchent plusieurs domaines. Seules les actions faites après avoir accepté une quête comptent. Les quêtes se suivent dans l'onglet Quêtes. Les règles d'apparition et le contenu sont dans `js/data/npcs.js`.
+## Multijoueur et clans
 
-## Jouer à plusieurs (amis, famille)
-
-- **Profils** : plusieurs personnages sur le même navigateur (Réglages → Profils).
-- **Guilde** : classement entre les profils de l'appareil et les **cartes de joueur** de tes amis. Exporte ta carte (fichier .json) et envoie-la, tes amis l'importent. La carte ne contient que les niveaux, séries et records : jamais les photos ni l'historique.
-- **Serveur plus tard** : toute la persistance passe par `Store` et un adaptateur (`js/storage.js`). Pour une synchro en ligne, écrire un adaptateur serveur avec la même interface (voir `js/storage-remote.example.js`, exemple avec Supabase) et appeler `Store.use(...)`.
+- **Profils** : plusieurs personnages sur le même navigateur (Profil → Réglages).
+- **Classement** : profils de l'appareil + cartes de joueur importées (fichier .json envoyé par tes amis).
+- **Clan** : nom, tag, devise, blason et couleur. On y ajoute des joueurs du classement, puis on leur envoie le fichier d'invitation qu'ils importent dans Multijoueur → Clan.
+- Le **chat de clan** et la mise à jour automatique des classements demandent un serveur : toute la persistance passe par `Store` et un adaptateur (`js/storage.js`, exemple Supabase dans `js/storage-remote.example.js`).
 
 ## Personnaliser
 
-- Barèmes d'XP, titres, missions, rangs, quêtes préfaites : `js/data/content.js`
-- Exercices du carnet de séances : `js/data/exercises.js`
+- Barèmes d'XP, titres, contrats, rangs, idées de tâches : `js/data/content.js`
 - PNJ et quêtes : `js/data/npcs.js`
-- Questions informatique : `js/data/quiz-it.js`. Pour un autre métier, copie ce fichier, change la clé (`QUIZ_BANKS.monmetier`), ajoute le `<script>` dans `index.html` et l'option dans `GAME.proDomains`.
-- Couleurs : jetons en haut de `css/style.css` (palette bordeaux, terracotta, sable, cyan, pétrole ; thèmes sombre et clair).
+- Questions et postes : `js/data/quiz-it.js`, `js/data/quiz-it-expert.js`, `js/data/jobs.js`
+- Couleurs : jetons en haut de `css/style.css` (thèmes sombre et clair).
 
 ## Données
 
-Tout reste en local : l'état de chaque profil dans `localStorage`, les photos (compressées) dans IndexedDB. Pense à faire un export régulier depuis Réglages (fichier .json, photos comprises). Les sauvegardes de la première version sont reprises automatiquement.
+Tout reste en local : l'état de chaque profil dans `localStorage`, les photos (compressées) dans IndexedDB. Exporte régulièrement depuis Profil → Réglages (fichier .json, photos comprises).

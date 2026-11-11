@@ -25,13 +25,13 @@ const GAME = {
   /* Missions IRL débloquées par niveau de domaine. Une preuve écrite est demandée. */
   missions: [
     { id: 'sp-1', domain: 'sport', minLevel: 1, xp: 60,  text: 'Fais 3 séances de sport (30 min min.) cette semaine' },
-    { id: 'sp-2', domain: 'sport', minLevel: 2, xp: 50,  text: 'Marche 10 000 pas en une journée' },
-    { id: 'sp-3', domain: 'sport', minLevel: 3, xp: 120, text: 'Cours 5 km sans t\'arrêter' },
+    { id: 'sp-2', domain: 'sport', giver: 'brann', minLevel: 2, xp: 50,  text: 'Marche 10 000 pas en une journée' },
+    { id: 'sp-3', domain: 'sport', giver: 'brann', minLevel: 3, xp: 120, text: 'Cours 5 km sans t\'arrêter' },
     { id: 'sp-8', domain: 'sport', minLevel: 4, xp: 120, text: 'Fais ta première traction stricte (ou 10 si tu en fais déjà)' },
     { id: 'sp-4', domain: 'sport', minLevel: 5, xp: 150, text: '100 pompes dans la journée (en autant de séries que nécessaire)' },
     { id: 'sp-5', domain: 'sport', minLevel: 7, xp: 150, text: 'Tiens 3 minutes de gainage d\'affilée' },
-    { id: 'sp-6', domain: 'sport', minLevel: 10, xp: 300, text: 'Termine une course officielle de 10 km' },
-    { id: 'sp-7', domain: 'sport', minLevel: 14, xp: 500, text: 'Termine un semi-marathon ou un trail de 20 km' },
+    { id: 'sp-6', domain: 'sport', giver: 'brann', minLevel: 10, xp: 300, text: 'Termine une course officielle de 10 km' },
+    { id: 'sp-7', domain: 'sport', giver: 'brann', minLevel: 14, xp: 500, text: 'Termine un semi-marathon ou un trail de 20 km' },
 
     { id: 'in-1', domain: 'intel', minLevel: 1, xp: 30,  text: 'Lis 10 pages aujourd\'hui, sans téléphone à portée' },
     { id: 'in-2', domain: 'intel', minLevel: 2, xp: 60,  text: 'Explique à quelqu\'un un concept appris cette semaine' },
@@ -40,12 +40,12 @@ const GAME = {
     { id: 'in-5', domain: 'intel', minLevel: 7, xp: 200, text: 'Publie un article sur un sujet que tu maîtrises' },
     { id: 'in-6', domain: 'intel', minLevel: 10, xp: 400, text: 'Pratique une nouvelle langue 30 jours d\'affilée' },
 
-    { id: 'di-1', domain: 'discipline', minLevel: 1, xp: 30,  text: 'Choisis la veille au soir tes 3 quêtes du lendemain, et fais-les' },
+    { id: 'di-1', domain: 'discipline', minLevel: 1, xp: 30,  text: 'Choisis la veille au soir tes 3 tâches du lendemain, et fais-les' },
     { id: 'di-2', domain: 'discipline', minLevel: 2, xp: 120, text: 'Lève-toi à la même heure 7 jours d\'affilée' },
     { id: 'di-3', domain: 'discipline', minLevel: 4, xp: 80,  text: 'Passe une journée entière sans réseaux sociaux' },
     { id: 'di-4', domain: 'discipline', minLevel: 6, xp: 150, text: 'Douche froide 7 jours de suite' },
     { id: 'di-5', domain: 'discipline', minLevel: 8, xp: 250, text: 'Une semaine sans sucre ajouté' },
-    { id: 'di-6', domain: 'discipline', minLevel: 12, xp: 400, text: 'Atteins une série de 30 jours de quêtes' },
+    { id: 'di-6', domain: 'discipline', minLevel: 12, xp: 400, text: 'Atteins une série de 30 jours de tâches' },
 
     { id: 'pr-0', domain: 'pro', minLevel: 2, xp: 80,  text: 'Mets à jour ton CV et ton profil LinkedIn avec tes dernières compétences' },
     { id: 'pr-00', domain: 'pro', minLevel: 5, xp: 150, text: 'Présente un sujet technique à ton équipe ou en meetup' },
@@ -109,7 +109,7 @@ const GAME = {
     workoutPerMin: 1, workoutMax: 60, weekGoal: 50, weekGoalDiscipline: 20,
     runPerKm: 8, runMin: 10, runMax: 150, runRecord: 50,
     checkin: 60, checkinBonusMax: 60,
-    quizFail: 10, quizTier: [0, 120, 250, 450],
+    quizFail: 10, quizTier: [0, 120, 250, 450, 700, 1000],
     book: 150, sessionPerMin: 1, sessionMax: 90,
     boss: 150, bossDiscipline: 30,
   },
@@ -118,19 +118,19 @@ const GAME = {
      input 'time' : saisie mm:ss convertie en secondes. */
   exercises: {
     pullups: { name: 'Tractions', icon: '', unit: 'rép.', max: 200, rule: 'Prise pronation, bras tendus en bas, menton au-dessus de la barre en haut, sans élan.',
-      ranks: [[0, 'E'], [1, 'D'], [5, 'C'], [10, 'B'], [15, 'A'], [20, 'S'], [30, 'S+']] },
+      ranks: [[0, '—'], [1, 'E'], [5, 'D'], [10, 'C'], [15, 'B'], [20, 'A'], [25, 'S'], [35, 'SS']] },
     cooper:  { name: 'Course : distance en 12 min', icon: '', unit: 'm', max: 6000, rule: 'Test de Cooper : cours le plus loin possible en 12 minutes, sur terrain plat. Note la distance en mètres.',
-      ranks: [[0, 'E'], [1600, 'D'], [2000, 'C'], [2400, 'B'], [2800, 'A'], [3200, 'S'], [3600, 'S+']] },
+      ranks: [[0, '—'], [1600, 'E'], [2000, 'D'], [2300, 'C'], [2600, 'B'], [2900, 'A'], [3200, 'S'], [3500, 'SS']] },
     pace5k:  { name: 'Course : rythme sur 5 km', icon: '', unit: '/km', max: 1200, lowerBetter: true, input: 'time5k', rule: 'Cours 5 km le plus vite possible. Saisis ton temps total (mm:ss), le rythme au km est calculé.',
-      ranks: [[Infinity, 'E'], [450, 'D'], [390, 'C'], [345, 'B'], [300, 'A'], [260, 'S'], [225, 'S+']] },
+      ranks: [[Infinity, '—'], [450, 'E'], [390, 'D'], [345, 'C'], [310, 'B'], [280, 'A'], [255, 'S'], [230, 'SS']] },
     pushups: { name: 'Pompes', icon: '', unit: 'rép.', max: 1000, rule: 'Amplitude complète, poitrine à un poing du sol, pas de pause de plus de 2 s.',
-      ranks: [[0, 'E'], [10, 'D'], [20, 'C'], [35, 'B'], [50, 'A'], [75, 'S'], [100, 'S+']] },
+      ranks: [[0, '—'], [10, 'E'], [20, 'D'], [35, 'C'], [50, 'B'], [70, 'A'], [90, 'S'], [120, 'SS']] },
     squats:  { name: 'Squats', icon: '', unit: 'rép.', max: 2000, rule: 'Cuisses au moins parallèles au sol, talons au sol, sans pause.',
-      ranks: [[0, 'E'], [20, 'D'], [40, 'C'], [60, 'B'], [80, 'A'], [100, 'S'], [150, 'S+']] },
+      ranks: [[0, '—'], [20, 'E'], [40, 'D'], [60, 'C'], [85, 'B'], [110, 'A'], [150, 'S'], [200, 'SS']] },
     squatsKg:{ name: 'Squat (charge max)', icon: '', unit: 'kg', max: 400, rule: 'Une répétition propre, cuisses parallèles. Avec pareur.',
-      ranks: [[0, 'E'], [40, 'D'], [60, 'C'], [80, 'B'], [100, 'A'], [140, 'S'], [180, 'S+']] },
+      ranks: [[0, '—'], [40, 'E'], [60, 'D'], [85, 'C'], [110, 'B'], [140, 'A'], [170, 'S'], [200, 'SS']] },
     plank:   { name: 'Gainage', icon: '', unit: 's', max: 7200, input: 'time', rule: 'Planche sur avant-bras, corps aligné. Le test s\'arrête dès que les hanches tombent.',
-      ranks: [[0, 'E'], [30, 'D'], [60, 'C'], [120, 'B'], [300, 'A'], [600, 'S'], [900, 'S+']] },
+      ranks: [[0, '—'], [30, 'E'], [60, 'D'], [120, 'C'], [240, 'B'], [420, 'A'], [600, 'S'], [900, 'SS']] },
   },
 
   /* Séances & régularité */

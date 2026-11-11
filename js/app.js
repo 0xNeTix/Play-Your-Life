@@ -27,7 +27,7 @@ const App = {
     if (this.state.id !== id) return;
     this.ppUrl = url;
     this.renderShell();
-    if (['settings', 'guild'].includes(this.route)) this.render(false);
+    if (['profile', 'guild'].includes(this.route)) this.render(false);
   },
 
   /* Récompenses de PNJ en attente, puis éventuelle rencontre */
@@ -324,7 +324,7 @@ const App = {
       if (el.matches('input[type=file][data-preview]')) {
         const img = document.getElementById(el.dataset.preview);
         const f = el.files && el.files[0];
-        if (img && f) { img.src = URL.createObjectURL(f); img.closest('.photo-slot, .pp-pick')?.classList.add('has'); }
+        if (img && f) { img.src = URL.createObjectURL(f); img.closest('.photo-slot, .pp-pick, .ws-pick')?.classList.add('has'); }
       }
       if (el.dataset.change && this.actions[el.dataset.change]) this.actions[el.dataset.change](el, ev);
     });
@@ -337,6 +337,7 @@ const App = {
   render(routeChanged) {
     const parts = (location.hash.replace(/^#\/?/, '') || 'home').split('/');
     let route = parts[0];
+    if (route === 'stats' || route === 'settings') { parts.splice(1, 0, route); route = 'profile'; }
     if (!this.state.profile) route = 'onboarding';
     if (!Views[route]) route = 'home';
     this.route = route;
@@ -364,8 +365,8 @@ const App = {
     const activeN = Engine.activeArcs(s).length + ARCS.filter(a => s.npc.arcs[a.id]?.status === 'ready').length;
     const nav = [
       ['home', 'home', 'QG'], ['sport', 'sport', 'Corps'], ['pro', 'pro', 'Métier'], ['intel', 'intel', 'Esprit'],
-      ['journal', 'quests', 'Quêtes', activeN], ['stats', 'stats', 'Stats'], ['guild', 'guild', 'Guilde'],
-      ['rewards', 'rewards', 'Trésor'], ['settings', 'settings', 'Réglages'],
+      ['journal', 'quests', 'Quêtes', activeN], ['guild', 'guild', 'Multijoueur'],
+      ['rewards', 'rewards', 'Trésor'], ['profile', 'avatar', 'Profil'],
     ];
     const active = this.route === 'quiz' ? 'pro' : this.route;
     side.innerHTML = `
@@ -404,7 +405,7 @@ const UI = {
     if (level >= 4) return { id: 'silver', name: 'Argent' };
     return { id: 'copper', name: 'Cuivre' };
   },
-  playerCard(card, { photoUrl = null } = {}) {
+  playerCard(card, { photoUrl = card.photo || null } = {}) {
     const tier = this.cardTier(card.level);
     const frame = card.avatar?.frame || 'none';
     const pic = photoUrl
@@ -417,7 +418,7 @@ const UI = {
     return `<article class="pcard tier-${tier.id}">
       <div class="pc-inner">
         <div class="pc-sheen"></div>
-        <header class="pc-head"><span>Play Your Life</span><span class="pc-tier">${tier.name}</span></header>
+        <header class="pc-head"><span>${card.clan ? `<b class="pc-clan" style="--cc:${card.clan.color}">${U.esc(card.clan.tag)}</b> ${U.esc(card.clan.name)}` : 'Play Your Life'}</span><span class="pc-tier">${tier.name}</span></header>
         <div class="pc-portrait"><span class="pc-ring framed frame-${frame}">${pic}</span><span class="pc-lvl"><small>Niv.</small>${card.level}</span></div>
         <div class="pc-name">${U.esc(card.name)}</div>
         <div class="pc-title">${U.esc(card.title || '')}</div>
@@ -453,29 +454,35 @@ const UI = {
       <p class="muted small">${U.fmtNum(info.into)} / ${U.fmtNum(info.need)} XP avant le niveau ${info.level + 1}</p>
     </header>`;
   },
-  /* Liste de missions IRL avec preuve écrite */
-  missions(list) {
+  /* Contrats (anciennes missions) confiés par les PNJ, avec preuve écrite */
+  missions(list, { lockedLimit = Infinity } = {}) {
     const s = App.state;
-    if (!list.length) return '<p class="muted">Aucune mission.</p>';
+    if (!list.length) return '<p class="muted">Aucun contrat.</p>';
     const done = list.filter(m => s.missions[m.id]);
     const open = list.filter(m => !s.missions[m.id] && Engine.missionUnlocked(s, m));
-    const locked = list.filter(m => !s.missions[m.id] && !Engine.missionUnlocked(s, m));
+    const locked = list.filter(m => !s.missions[m.id] && !Engine.missionUnlocked(s, m)).slice(0, lockedLimit);
+    const giver = m => {
+      const id = Engine.missionGiver(m);
+      return `<span class="m-face" title="${U.esc(NPCS[id].name)}">${UI.npcFace(id, 36)}</span>`;
+    };
+    const who = m => `<small class="m-who">${U.esc(NPCS[Engine.missionGiver(m)].name)} · ${GAME.domains[m.domain].name}</small>`;
     const row = m => {
       if (s.missions[m.id]) {
         const r = s.missions[m.id];
-        return `<li class="mission done"><span class="m-ico ok">${Icons.get('check', 18)}</span><div><div>${U.esc(m.text)}</div><small>${U.fmtDate(r.ts)} · « ${U.esc(r.note)} »</small></div><span class="m-xp">+${m.xp}</span></li>`;
+        return `<li class="mission done">${giver(m)}<div><div>${U.esc(m.text)}</div><small>Accompli le ${U.fmtDate(r.ts)} · « ${U.esc(r.note)} »</small></div><span class="m-xp">+${m.xp}</span></li>`;
       }
       if (!Engine.missionUnlocked(s, m)) {
-        return `<li class="mission locked"><span class="m-ico">${Icons.get('lock', 18)}</span><div><div>${U.esc(m.text)}</div><small>Débloquée à : ${U.esc(Engine.missionLockLabel(m))}</small></div><span class="m-xp">+${m.xp}</span></li>`;
+        return `<li class="mission locked">${giver(m)}<div><div>${U.esc(m.text)}</div><small>${Icons.get('lock', 12)} Confié à : ${U.esc(Engine.missionLockLabel(m))}</small></div><span class="m-xp">+${m.xp}</span></li>`;
       }
-      return `<li class="mission open"><span class="m-ico">${Icons.get('target', 18)}</span><div class="m-main"><div>${U.esc(m.text)}</div>
+      return `<li class="mission open">${giver(m)}<div class="m-main">${who(m)}<div>${U.esc(m.text)}</div>
         <details><summary>Je l'ai fait</summary>
           <form data-form="mission" data-id="${m.id}" class="inline-form">
             <input name="note" required minlength="10" maxlength="240" placeholder="Preuve : qu'as-tu fait concrètement ? (10 caractères min.)">
             <button class="btn primary sm">Valider</button>
           </form></details></div><span class="m-xp">+${m.xp}</span></li>`;
     };
-    return `<ul class="missions">${[...open, ...locked, ...done].map(row).join('')}</ul>`;
+    return `<ul class="missions">${[...open, ...locked].map(row).join('')}</ul>
+      ${done.length ? `<details class="m-done"><summary>Contrats accomplis (${done.length})</summary><ul class="missions">${done.map(row).join('')}</ul></details>` : ''}`;
   },
   table(head, rows) {
     if (!rows.length) return '<p class="muted">Aucune donnée.</p>';
@@ -492,7 +499,7 @@ App.forms.mission = (fd, form) => {
   const note = String(fd.get('note') || '').trim();
   if (!m || App.state.missions[id] || note.length < 10) return;
   App.state.missions[id] = { ts: Date.now(), note };
-  App.grant(m.domain, m.xp, `Mission : ${m.text}`);
+  App.grant(m.domain, m.xp, `Contrat de ${NPCS[Engine.missionGiver(m)].name} : ${m.text}`);
   App.commit();
 };
 App.actions.lootEquip = el => {

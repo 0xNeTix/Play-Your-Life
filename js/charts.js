@@ -181,5 +181,44 @@ const Charts = (() => {
     }
   }
 
-  return { line, columns, heatmap };
+  /* Radar : axes = libellés, series = [{ label, color, values, fill?, dash? }], échelle 0..max */
+  function radar(el, { axes, series, max = 5, levels = [] }) {
+    const w = Math.max(260, el.clientWidth || 400);
+    const h = Math.min(w, 400);
+    const { svg, tip } = frame(el, h);
+    svg.setAttribute('aria-label', 'Carte de compétences');
+    const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 58;
+    const n = axes.length;
+    const ang = i => -Math.PI / 2 + (i * 2 * Math.PI) / n;
+    const pt = (i, v) => [cx + Math.cos(ang(i)) * R * (v / max), cy + Math.sin(ang(i)) * R * (v / max)];
+    for (let l = 1; l <= max; l++) {
+      add(svg, 'polygon', { points: axes.map((_, i) => pt(i, l).join(',')).join(' '), class: l === max ? 'axis' : 'grid', fill: 'none' });
+    }
+    axes.forEach((name, i) => {
+      const [x, y] = pt(i, max);
+      add(svg, 'line', { x1: cx, y1: cy, x2: x, y2: y, class: 'grid' });
+      const [lx, ly] = [cx + Math.cos(ang(i)) * (R + 16), cy + Math.sin(ang(i)) * (R + 16)];
+      const c = Math.cos(ang(i));
+      add(svg, 'text', { x: lx, y: ly + 4, 'text-anchor': Math.abs(c) < .2 ? 'middle' : c > 0 ? 'start' : 'end', class: 'radar-label' }, name);
+    });
+    for (let l = 1; l <= max; l++) add(svg, 'text', { x: cx + 4, y: cy - (R * l) / max + 3, class: 'tick' }, l);
+    series.forEach(sr => {
+      const pts = sr.values.map((v, i) => pt(i, v).join(',')).join(' ');
+      add(svg, 'polygon', { points: pts, style: `fill:${sr.fill ? sr.color : 'none'};fill-opacity:${sr.fill ? .2 : 0};stroke:${sr.color}`, class: `radar-shape ${sr.dash ? 'dash' : ''}` });
+      sr.values.forEach((v, i) => { const [x, y] = pt(i, v); add(svg, 'circle', { cx: x, cy: y, r: 4, class: 'series-dot', style: `fill:${sr.color}` }); });
+    });
+    axes.forEach((name, i) => {
+      const [x, y] = pt(i, max);
+      const a1 = ang(i) - Math.PI / n, a2 = ang(i) + Math.PI / n, RR = R + 24;
+      const hit = add(svg, 'polygon', { points: `${cx},${cy} ${cx + Math.cos(a1) * RR},${cy + Math.sin(a1) * RR} ${cx + Math.cos(ang(i)) * RR * 1.1},${cy + Math.sin(ang(i)) * RR * 1.1} ${cx + Math.cos(a2) * RR},${cy + Math.sin(a2) * RR}`, fill: 'transparent' });
+      hit.addEventListener('pointermove', () => {
+        const sc = svg.getBoundingClientRect().width / w;
+        const rows = series.map(sr => `<span>${U.esc(sr.label)} : ${sr.values[i]}${levels[sr.values[i]] ? ' · ' + U.esc(levels[sr.values[i]]) : ''}</span>`).join('');
+        showTip(el, tip, `<strong>${U.esc(name)}</strong>${rows}`, x * sc, y * sc);
+      });
+      hit.addEventListener('pointerleave', () => hideTip(tip));
+    });
+  }
+
+  return { line, columns, heatmap, radar };
 })();

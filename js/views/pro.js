@@ -1,76 +1,94 @@
-/* Métier : arbre de compétences avec tests, missions pratiques, réalisations réelles */
+/* Métier : carte de compétences (radar), trajectoire de poste, tests par thématique */
 Views.pro = {
   render() {
     const s = App.state;
     const info = Engine.domainLevel(s, 'pro');
     const b = Engine.bank(s);
     const now = Date.now();
+    const jobs = JOBS[s.profile.proDomain] || [];
+    const cur = jobs.find(j => j.id === s.pro.currentJob);
+    const tgt = jobs.find(j => j.id === s.pro.targetJob);
+    const maxTier = b ? b.tierNames.length - 1 : 5;
+    const jobSelect = (name, value, custom) => jobs.length
+      ? `<select name="${name}" data-change="jobSet"><option value="">— Choisir —</option>${jobs.map(j => `<option value="${j.id}" ${value === j.id ? 'selected' : ''}>${U.esc(j.name)}</option>`).join('')}</select>`
+      : `<input name="${name}" value="${U.esc(custom || '')}" maxlength="60" data-change="jobSet" placeholder="Intitulé du poste">`;
+
+    /* Écart avec le poste visé : compétences à monter, de la plus grosse marche à la plus petite */
+    const gaps = b && tgt ? b.subdomains.map(sd => ({ sd, have: Engine.quizState(s, sd.id).tier, need: tgt.req[sd.id] || 0 }))
+      .filter(g => g.need > g.have).sort((a, c) => (c.need - c.have) - (a.need - a.have)) : [];
+    const ready = b && tgt && !gaps.length;
 
     const tree = b ? b.subdomains.map(sd => {
       const q = Engine.quizState(s, sd.id);
-      const maxTier = sd.tiers.length - 1;
+      const max = sd.tiers.length - 1;
       const locked = q.lockUntil > now;
-      const stars = Array.from({ length: maxTier }, (_, i) => `<span class="star ${i < q.tier ? 'on' : ''}">★</span>`).join('');
-      const missions = sd.missions.map(m => ({ id: `pro-${sd.id}-${m.tier}`, domain: 'pro', sub: sd.id, subName: sd.name, minTier: m.tier, xp: m.xp, text: m.text }));
-      return `<div class="card skill ${q.tier >= maxTier ? 'mastered' : ''}">
-        <div class="sk-head"><span class="sk-ico">${sd.icon}</span><div><h3>${sd.name}</h3><div class="stars">${stars}</div></div></div>
-        <p class="muted small">${q.tier ? `Validé : ${b.tierNames[q.tier]}` : 'Non évalué'}</p>
-        ${q.tier >= maxTier ? '<div class="pill ok">Maîtrisé ✔</div>'
+      const need = tgt ? tgt.req[sd.id] || 0 : 0;
+      const pips = Array.from({ length: max }, (_, i) => `<span class="pip ${i < q.tier ? 'on' : ''} ${i >= q.tier && i < need ? 'goal' : ''}" title="${b.tierNames[i + 1]}"></span>`).join('');
+      return `<div class="card skill ${q.tier >= max ? 'mastered' : ''}">
+        <div class="sk-head"><span class="sk-ico">${sd.icon}</span><div><h3>${sd.name}</h3><div class="pips">${pips}</div></div></div>
+        <p class="muted small">${q.tier ? `${b.tierNames[q.tier]} validé` : 'Non évalué'}${need > q.tier ? ` · visé : ${b.tierNames[need]}` : ''}</p>
+        ${q.tier >= max ? '<div class="pill ok">Maîtrisé</div>'
           : locked ? `<button class="btn" disabled>Réessai dans ${U.fmtRemaining(q.lockUntil - now)}</button>`
-          : `<button class="btn primary" data-act="quizStart" data-sub="${sd.id}">Passer le test : ${b.tierNames[q.tier + 1]}</button>`}
-        <details class="sk-missions"><summary>Missions pratiques (${missions.filter(m => s.missions[m.id]).length}/${missions.length})</summary>${UI.missions(missions)}</details>
+          : `<button class="btn ${need > q.tier ? 'primary' : ''}" data-act="quizStart" data-sub="${sd.id}">Test ${q.tier + 1}/${max} : ${b.tierNames[q.tier + 1]}</button>`}
       </div>`;
     }).join('') : '';
 
-    const ach = s.pro.achievements.slice().sort((a, c) => c.ts - a.ts);
-
     return `
       <header class="page-head">
-        <p class="eyebrow">Métier · ${U.esc(s.profile.proDomainName)} · Niv. ${info.level} · ${U.esc(Engine.title('pro', info.level))}</p>
+        <p class="eyebrow">${GAME.domains.pro.icon} Métier · ${U.esc(s.profile.proDomainName)} · Niv. ${info.level} · ${U.esc(Engine.title('pro', info.level))}</p>
         <h1>Tes compétences, prouvées.</h1>
         ${UI.xpBar(info, 'pro')}
         <p class="muted small">${U.fmtNum(info.into)} / ${U.fmtNum(info.need)} XP avant le niveau ${info.level + 1}</p>
       </header>
 
-      ${b ? `
-        <div class="callout small">Chaque test : ${b.questionsPerQuiz} questions, ${b.passScore} bonnes réponses pour valider. Un échec, ou un test abandonné, bloque le sous-domaine ${b.cooldownHours} h : révise avant de retenter. Chaque palier validé débloque une mission pratique à faire pour de vrai.</div>
-        <section class="grid3">${tree}</section>`
-      : `<div class="callout">Les tests de connaissances ne sont pas encore disponibles pour « ${U.esc(s.profile.proDomainName)} ». Tu peux déjà gagner de l'XP Métier avec tes réalisations réelles ci-dessous. Pour ajouter une banque de questions, crée un fichier sur le modèle de <code>js/data/quiz-it.js</code>.</div>`}
-
       <section class="cols">
         <div class="card">
-          <div class="card-head"><h2>Déclarer une réalisation réelle</h2></div>
-          <form data-form="achievement" class="stack-form">
-            <label>Type<select name="type">${Object.entries(GAME.achievementTypes).map(([k, t]) => `<option value="${k}">${t.label} (+${t.xp} XP)</option>`).join('')}</select></label>
-            <label>Intitulé<input name="title" required maxlength="100" placeholder="Ex. CCNA 200-301, refonte de l'API facturation…"></label>
-            <label>Preuve / détail<input name="proof" required minlength="10" maxlength="240" placeholder="Numéro de certif, lien du dépôt, ce que tu as livré…"></label>
-            <button class="btn primary">Enregistrer</button>
-          </form>
+          <div class="card-head"><h2>Carte de compétences</h2><span class="muted small">paliers validés sur ${maxTier}</span></div>
+          ${b ? `<div id="ch-radar"></div>
+            <div class="legend"><span class="lg-cur">Mon niveau</span>${tgt ? `<span class="lg-tgt">${U.esc(tgt.name)}</span>` : ''}</div>`
+            : '<p class="empty-hint">La carte de compétences apparaîtra quand une banque de tests existera pour ton domaine.</p>'}
         </div>
+
         <div class="card">
-          <div class="card-head"><h2>Palmarès</h2><span class="muted small">${ach.length}</span></div>
-          ${ach.length ? `<ul class="log">${ach.map(a => `<li><span>${U.esc(GAME.achievementTypes[a.type]?.label || a.type)}</span><strong>${U.esc(a.title)}</strong><small>${U.fmtDate(a.ts)} · ${U.esc(a.proof)}</small></li>`).join('')}</ul>`
-            : '<p class="empty-hint">Rien encore. Une formation finie, un projet livré, une certif : tout ce qui est réel compte.</p>'}
+          <div class="card-head"><h2>Trajectoire</h2></div>
+          <form class="stack-form" onsubmit="return false">
+            <label>Poste actuel${jobSelect('currentJob', s.pro.currentJob, s.pro.currentJobText)}</label>
+            <label>Poste visé${jobSelect('targetJob', s.pro.targetJob, s.pro.targetJobText)}</label>
+          </form>
+          ${!b ? '' : !tgt ? '<p class="muted small" style="margin-top:14px">Choisis le poste que tu vises : le radar te montrera l\'écart à combler.</p>'
+            : ready ? `<div class="callout" style="margin-top:14px">Tu as le niveau de compétences attendu pour <strong>${U.esc(tgt.name)}</strong>. Il reste à le prouver en vrai : projets, entretiens, certification.</div>`
+            : `<h3>À combler pour devenir ${U.esc(tgt.name)}</h3>
+              <ul class="gaps">${gaps.map(g => `<li><span>${g.sd.icon} ${g.sd.name}</span><span class="gap-bar">${Array.from({ length: maxTier }, (_, i) => `<i class="${i < g.have ? 'on' : i < g.need ? 'goal' : ''}"></i>`).join('')}</span><small>${g.need - g.have} palier${g.need - g.have > 1 ? 's' : ''}</small></li>`).join('')}</ul>
+              <p class="next-step">Prochaine étape : <strong>test ${U.esc(gaps[0].sd.name)} — ${b.tierNames[gaps[0].have + 1]}</strong></p>`}
+          <p class="muted small">Bientôt : un chemin de progression et des certifications proposés automatiquement selon ton profil.</p>
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-head"><h2>Missions Métier</h2></div>
-        ${UI.missions(GAME.missions.filter(m => m.domain === 'pro'))}
-      </section>`;
+      ${b ? `
+        <div class="callout small">${maxTier} QCM par thématique, du niveau Fondamentaux au niveau Maître. ${b.questionsPerQuiz} questions par test, ${b.passScore} bonnes réponses pour valider. Un échec ou un abandon bloque la thématique ${b.cooldownHours} h. Les paliers validés débloquent des contrats d'Orin dans l'onglet Quêtes.</div>
+        <section class="grid3">${tree}</section>`
+      : `<div class="callout">Les tests ne sont pas encore disponibles pour « ${U.esc(s.profile.proDomainName)} ». Pour ajouter une banque de questions, crée un fichier sur le modèle de <code>js/data/quiz-it.js</code>.</div>`}`;
+  },
+
+  mount() {
+    const s = App.state;
+    const b = Engine.bank(s);
+    const el = document.getElementById('ch-radar');
+    if (!b || !el) return;
+    const tgt = (JOBS[s.profile.proDomain] || []).find(j => j.id === s.pro.targetJob);
+    const series = [{ label: 'Mon niveau', color: 'var(--c-pro)', values: b.subdomains.map(sd => Engine.quizState(s, sd.id).tier), fill: true }];
+    if (tgt) series.push({ label: tgt.name, color: 'var(--gold)', values: b.subdomains.map(sd => tgt.req[sd.id] || 0), dash: true });
+    Charts.radar(el, { axes: b.subdomains.map(sd => sd.name), max: b.tierNames.length - 1, series, levels: b.tierNames });
   },
 };
 
-App.forms.achievement = (fd) => {
-  const type = fd.get('type');
-  const t = GAME.achievementTypes[type];
-  const title = String(fd.get('title') || '').trim();
-  const proof = String(fd.get('proof') || '').trim();
-  if (!t || !title || proof.length < 10) return;
-  const id = U.uid();
-  App.state.pro.achievements.push({ id, ts: Date.now(), type, title, proof });
-  App.grant('pro', t.xp, `${t.label} : ${title}`, id);
-  App.commit();
+App.actions.jobSet = el => {
+  const p = App.state.pro;
+  const jobs = JOBS[App.state.profile.proDomain];
+  if (jobs) p[el.name] = el.value || null;
+  else p[el.name + 'Text'] = String(el.value || '').trim().slice(0, 60);
+  App.save();
+  App.render(false);
 };
 
 /* ---------- Test de connaissances ---------- */
@@ -141,7 +159,7 @@ Views.quiz = {
         <div class="score-big">${z.score}<small>/${z.questions.length}</small></div>
         <h2>${z.passed ? 'Palier validé !' : 'Pas encore.'}</h2>
         <p class="muted">${z.passed ? `+${GAME.xp.quizTier[z.tier]} XP Métier.` : `Il fallait ${b.passScore} bonnes réponses. Relis les explications, révise, et retente dans ${b.cooldownHours} h.`}</p>
-        ${z.passed && m ? `<div class="callout"><strong>Mission débloquée :</strong> ${U.esc(m.text)} <small>(+${m.xp} XP quand tu l'auras faite pour de vrai)</small></div>` : ''}
+        ${z.passed && m ? `<div class="callout"><strong>Orin te confie un contrat :</strong> ${U.esc(m.text)} <small>(+${m.xp} XP quand tu l'auras faite pour de vrai)</small></div>` : ''}
         <a class="btn primary" href="#/pro">Retour à l'arbre de compétences</a>
       </div>`;
     }

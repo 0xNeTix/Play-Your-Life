@@ -122,20 +122,6 @@ const Engine = (() => {
     const monthKm = runs.filter(r => r.ts >= m0.getTime()).reduce((a, r) => a + r.km, 0);
     return { km, longest, fastest, weekKm, monthKm, count: runs.length };
   }
-  /* Charge max par exercice (carnet de séances) */
-  function liftPRs(s) {
-    const pr = {};
-    for (const se of s.sport.sessions) {
-      for (const e of se.exercises || []) {
-        const ex = EXERCISES.byId[e.ex];
-        if (!ex) continue;
-        const val = ex.kind === 'kg' ? e.kg : ex.kind === 'time' ? e.sec : ex.kind === 'cardio' ? e.min : e.reps;
-        if (val && (!pr[e.ex] || val > pr[e.ex].value)) pr[e.ex] = { value: val, ts: se.ts, kind: ex.kind };
-      }
-    }
-    return pr;
-  }
-
   /* ---------- Métier ---------- */
   function quizState(s, sub) {
     if (!s.pro.quiz[sub]) s.pro.quiz[sub] = { tier: 0, attempts: [], lockUntil: 0 };
@@ -158,6 +144,8 @@ const Engine = (() => {
     }
     return list;
   }
+  const GIVERS = { sport: 'kael', intel: 'lyra', discipline: 'mira', pro: 'orin' };
+  const missionGiver = m => m.giver || GIVERS[m.domain] || 'voyageur';
   function missionUnlocked(s, m) {
     if (m.minTier) return (s.pro.quiz[m.sub]?.tier || 0) >= m.minTier;
     return domainLevel(s, m.domain).level >= m.minLevel;
@@ -199,7 +187,7 @@ const Engine = (() => {
     const out = [];
     for (const t of titlesBetween(d, from, to)) out.push({ kind: 'title', text: `Titre « ${t} »` });
     if (d !== 'char') {
-      for (const m of GAME.missions) if (m.domain === d && m.minLevel > from && m.minLevel <= to) out.push({ kind: 'mission', text: m.text, xp: m.xp });
+      for (const m of GAME.missions) if (m.domain === d && m.minLevel > from && m.minLevel <= to) out.push({ kind: 'mission', text: `Contrat de ${NPCS[missionGiver(m)].name} : ${m.text}`, xp: m.xp });
     } else {
       if (from < GAME.bossUnlockCharLevel && to >= GAME.bossUnlockCharLevel) out.push({ kind: 'feature', text: 'Boss de la semaine : un défi réel majeur chaque semaine' });
       const newNpc = ARCS.filter(a => a.minChar > from && a.minChar <= to).map(a => NPCS[a.npc].name);
@@ -213,7 +201,7 @@ const Engine = (() => {
     const lv = levelOf(s, d);
     const cands = [];
     for (const [l, n] of GAME.titles[d] || []) if (l > lv) cands.push({ level: l, text: `Titre « ${n} »` });
-    if (d !== 'char') for (const m of GAME.missions) if (m.domain === d && m.minLevel > lv) cands.push({ level: m.minLevel, text: `Mission : ${m.text}` });
+    if (d !== 'char') for (const m of GAME.missions) if (m.domain === d && m.minLevel > lv) cands.push({ level: m.minLevel, text: `Contrat : ${m.text}` });
     for (const r of s.rewards) if (r.domain === d && r.level > lv) cands.push({ level: r.level, text: `🎁 ${r.text}`, irl: true });
     cands.sort((a, b) => a.level - b.level || (b.irl ? 1 : 0) - (a.irl ? 1 : 0));
     return cands[0] || null;
@@ -292,14 +280,15 @@ const Engine = (() => {
       npcTitles: s.npc.titles.map(t => t.title),
       avatar: s.profile?.avatar || null,
       since: s.profile?.createdAt || null,
+      clan: s.clan ? { id: s.clan.id, name: s.clan.name, tag: s.clan.tag, motto: s.clan.motto, color: s.clan.color, emblem: s.clan.emblem, createdAt: s.clan.createdAt } : null,
     };
   }
 
   return {
     need, levelInfo, domainXP, totalXP, domainLevel, charLevel, levelOf, snapshot, title,
     activeExercises, resolveExo, testsFor, best, better, rank, fmtTest, checkinThisWeek,
-    workouts, workoutsInWeek, weekStreak, regularity, runStats, liftPRs,
-    quizState, bank, allMissions, missionUnlocked, missionLockLabel,
+    workouts, workoutsInWeek, weekStreak, regularity, runStats,
+    quizState, bank, allMissions, missionUnlocked, missionLockLabel, missionGiver,
     questsToday, streak, bestStreak, rewardUnlocked, unlocksBetween, nextUnlock,
     arcProgress, availableArcs, activeArcs, publicCard,
   };

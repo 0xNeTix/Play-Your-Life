@@ -85,7 +85,7 @@ const Store = (() => {
     version: SCHEMA_VERSION,
     id: null,
     profile: null,            // { name, proDomain, proDomainName, createdAt }
-    settings: { theme: 'auto', squatUnit: 'reps', runTest: 'cooper', weeklyGoal: 3, sound: true },
+    settings: { theme: 'auto', squatUnit: 'reps', runTest: 'cooper', weeklyGoal: 3, sound: true, sharePhoto: true },
     xpLog: [],                // { id, ts, domain, amount, reason, ref? }
     sport: { tests: [], checkins: [], sessions: [], runs: [], goalWeeks: {} },
     pro: { quiz: {}, achievements: [] },
@@ -96,7 +96,8 @@ const Store = (() => {
     rewards: [],              // { id, domain, level, text, claimedTs }
     npc: { arcs: {}, encounters: {}, lastTs: 0, titles: [] },
     cosmetics: { seen: null }, // objets d'avatar déjà annoncés
-    friends: [],              // cartes de joueurs importées
+    friends: [],
+    clan: null,               // { id, name, tag, motto, color, emblem, founderId, members: [ids] }              // cartes de joueurs importées
   });
 
   /* Complète un état ancien avec les champs récents */

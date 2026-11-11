@@ -358,7 +358,7 @@ const Avatar = (() => {
     if (!lock) return '';
     if (lock.arc) { const a = ARCS.find(x => x.id === lock.arc); return a ? `Quête « ${a.title} »` : 'Quête'; }
     if (lock.xp) return `${U.fmtNum(lock.xp)} XP au total`;
-    if (lock.quests) return `${lock.quests} quêtes du jour`;
+    if (lock.quests) return `${lock.quests} tâches du jour`;
     if (lock.streak) return `Série de ${lock.streak} jours`;
     return `${lock.domain === 'char' ? 'Personnage' : GAME.domains[lock.domain].name} niv. ${lock.level}`;
   }

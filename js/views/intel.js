@@ -54,11 +54,7 @@ Views.intel = {
           ${sessions.length ? `<ul class="log">${sessions.slice(0, 12).map(x => `<li><span>${U.esc(GAME.sessionTypes[x.kind])}</span><strong>${U.esc(x.topic)}</strong><small>${U.fmtDate(x.ts)} · ${x.minutes} min</small></li>`).join('')}</ul>` : '<p class="empty-hint">Aucune session.</p>'}
         </div>
       </section>
-
-      <section class="card">
-        <div class="card-head"><h2>Missions Esprit</h2></div>
-        ${UI.missions(GAME.missions.filter(m => m.domain === 'intel'))}
-      </section>`;
+`;
   },
 };
 
